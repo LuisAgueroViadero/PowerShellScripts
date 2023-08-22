@@ -6,7 +6,8 @@ Functions to execute diferents actions.
 1.- SvrProcesoActivos - Show us the active proccess
 2.- SvrEventLog -Show us the first 5 Event error from Application of servers send from a file .txt load in a principal program ( TareasDiarias.PS1) if the server has a error send a message in .txt error file.
 3.- SvrHotfix  - Show us the first 5 updates of servers send from a file .txt load in a principal program ( tareasDiarias.ps1 ) if the server return a error send a message in .txt error file
-4.- SvrAntivirus - 
+4.- SvrAntivirus - This function search the last uptime antivirus date, if the date have 5 diferents days of the actually date ask the operating system (in diferents operating system the process are diferent)
+			and execute the update depending of operating system, and do the same with the last Scan.
 5.- Get-UpTime - Show us the last boot uptime of the servers send from a file .txt load in a pricnipal program ( TareasDiadrias.ps1 ) 
 6.- Get-DiskSpace -Show us the disks, size and %free of the servers send from a file .txt load in a pricnipal program ( TareasDiadrias.ps1 ) 
 . PARAMETER ComputerName
