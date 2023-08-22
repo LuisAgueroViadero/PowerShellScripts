@@ -1,0 +1,91 @@
+# Tareas diarias
+<#
+. SYNOPSIS
+This program call the functions for execute a diary tasks in a set of servers saved in a text file
+. DESCRIPTION
+Execute diferents tasks with the functions (functions.ps1)
+1.- SvrProcesoActivos - Show us the active proccess of a indicated server.
+2.- SvrEventLog -Show us the first 5 Event error from Application of servers send from a file .txt load in a principal program ( TareasDiarias.PS1) if the server has a error send a message in 
+      .txt error file and save the datas ina a CSV file.
+3.- SvrHotfix  - Show us the first 5 updates of servers send from a file .txt load in a principal program ( tareasDiarias.ps1 ) if the server return a error send a message in .txt error file 
+      and save the datas ina a CSV file.
+4.- SvrAntivirus - This function search the last uptime antivirus date, if the date have 5 diferents days of the actually date ask the operating system (in diferents operating system the process are diferent)
+			and execute the update depending of operating system, and do the same with the last Scan and save the datas ina a CSV file.
+5.- Get-UpTime - Show us the last boot uptime of the servers send from a file .txt load in a pricnipal program ( TareasDiadrias.ps1 ) and save the datas ina a CSV file. 
+6.- Get-DiskSpace -Show us the disks, size and %free of the servers send from a file .txt load in a pricnipal program ( TareasDiadrias.ps1 ) and save the datas ina a CSV file.
+. PARAMETER ComputerName
+Name or names from machines. Default Value: Localhost. This is for the Function to view the active process
+. EXAMPLE
+Get-Service -ComputerName Server01 |Where-Object {$_.Status -eq "Running"}|Out-GridView
+Show us the active proccess
+
+. EXAMPLE
+Get-WinEvent -ComputerName Server01 -LogName Application |Where-Object {$_.leveldisplayname -eq "Error"} |select @{Label='Equipo';Expression= "MachineName"},
+          @{label='Fecha Creación';expression="TimeCreated"},@{label='ID';expression="Id"},@{label='Mensaje del Error';expression="Message"} -First 5
+Show us the first 5 Event error from Application of server Server01.
+
+. EXAMPLE
+Get-HotFix -ComputerName Server01 |select @{label='Equipo';expression="PsComputerName"},@{label='Descripción';expression="Description"}, HotFixID, InstalledOn -First 5
+Show us the first 5 updates of server Server01
+
+. EXAMPLE
+Get-MpComputerStatus -CimSession Server01 |select @{label='Equipo';expression='PSComputerName'},@{label='Antivirus Enabled';expression='AntivirusEnabled'}, 
+                    @{label='Version';expression='AntivirusSignatureVersion'}, @{label='Fecha Actualizacion';expression='NISSignatureLastUpdated'},
+                    @{label='Fecha last Scaned';expression='FullScanEndTime'}
+
+. EXAMPLE
+Get-WmiObject -class win32_OperatingSystem -computername Server01 | select @{label="equipo";expression={$_.__server}},@{label="time";expression = {$_.converttodatetime($_.lastbootuptime)}}
+Show us the last boot uptime of the server Server01 and convert the date in date time format. 
+
+. EXAMPLE
+Get-WmiObject -Class win32_volume -computername Server01 | Select-Object @{LABEL='Equipo';EXPRESSION={$_.__server}}, driveletter, label,  
+        @{LABEL='GBfreespace';EXPRESSION={"{0:N2}" -f ($_.freespace/1GB)}}, @{LABEL='GBtotal';EXPRESSION={"{0:N2}" -f ($_.Capacity/1GB)}} 
+Show us the disks, size and %free of the server Server01
+
+#>
+
+# Put the password from administrator in a .txt file encrypted
+  read-host -AsSecureString |ConvertFrom-SecureString |Out-File C:\temp\SecurePassword.txt
+# Charge the function file, here take a necesary function to execute the program
+  . C:\temp\Function.ps1
+# Charge the servers with we go to work and put this datas in a variable.
+  $fichero = 'C:\temp\servers_Eventos.txt'
+  $servers = Get-Content $fichero
+
+# Put the files when we go to save the datas in a variable
+    $path = "c:\temp\SizeHD_Restart_Event\"+(get-date -Format yyyyMMdd)+"_Events.csv"
+    $path1 = "c:\temp\SizeHD_Restart_Event\"+(get-date -Format yyyyMMdd)+"_Updates.csv"
+    $path2 = "c:\temp\SizeHD_Restart_Event\"+(get-date -Format yyyyMMdd)+"_Antivirus.csv"
+
+# Put date in a variable 
+  $Date = Get-Date
+
+# Put the user name and password in a variable.
+  $User = 'domain\Asministrator'
+  $Pass = cat C:\temp\SecurePassword.txt | ConvertTo-SecureString
+  $Credentials = New-object -TypeName System.Management.Automation.PSCredential -ArgumentList $User,$Pass
+
+# Call the variables and export to CSV de datas and add to the files.
+  SvrEventLog -servers $servers | Export-csv "$path" -Delimiter ';' -Append -NoTypeInformation
+  SvrHotfix -servers $servers | Export-Csv "$path1" -Delimiter ';' -Append -NoTypeInformation
+  SvrAntivirus -servers $servers | Export-Csv "$path2" -Delimiter ';' -Append -NoTypeInformation
+
+  $fichero = 'C:\temp\servers_Eventos-1.txt'
+  $servers = Get-Content $fichero
+
+    $path = "c:\temp\SizeHD_Restart_Event\"+(get-date -Format yyyyMMdd)+"_Events-1.csv"
+    $path1 = "c:\temp\SizeHD_Restart_Event\"+(get-date -Format yyyyMMdd)+"_Updates-1.csv"
+    $path2 = "c:\temp\SizeHD_Restart_Event\"+(get-date -Format yyyyMMdd)+"_Antivirus-1.csv"
+
+# Put the password from administrator2 in a .txt file encrypted
+  read-host -AsSecureString |ConvertFrom-SecureString |Out-File C:\temp\SecurePassword_0.txt
+#Put the user name and password in a variable.
+  $User = 'domain2\Administrator2'
+  $Pass = cat C:\temp\SecurePassword_0.txt | ConvertTo-SecureString
+  $Credentials = New-object -TypeName System.Management.Automation.PSCredential -ArgumentList $User,$Pass
+
+# Call the variables and export to CSV de datas and add to the files. 
+  SvrEventLog | Export-csv "$path" -Delimiter ';' -Append -NoTypeInformation
+  SvrHotfix -servers $servers | Export-Csv "$path1" -Delimiter ';' -Append -NoTypeInformation
+  SvrAntivirus -servers $servers | Export-Csv "$path2" -Delimiter ';' -Append -NoTypeInformation
+
