@@ -1,0 +1,33 @@
+<#
+. SYNOPSIS
+Stop or Start services
+. DESCRIPTION
+Program to Start or Stop services in indicated servers
+. PARAMETER ComputerName
+Name or names from machines. Default Value: Localhost. This is for the Function to view the active process
+. EXAMPLE
+Start-Service -name notepad
+Start the notepad service
+
+. EXAMPLE
+Stop-Service -name notepad
+#>
+ [CmdletBinding()] param (
+  [Parameter(Mandatory=$True,HelpMessage="Introduce Servers")]
+  [Alias('hostname')]   
+  [string]$servers,
+  [Parameter(Mandatory=$True,HelpMessage="Introduce Services") ]
+  [String]$services
+)
+Get-Service -ComputerName $servers |Where-Object {$_.name -like "$services*"}|select servicename,displayname,name,status
+param (
+  [Parameter(Mandatory=$True,HelpMessage="Stop/start")]
+  [string]$StartStop
+  )
+if ($StartStop -eq ("start")){
+    Start-Service $services
+    }
+    Else {
+    Stop-Process $services
+    }
+Get-Service -ComputerName $servers |Where-Object {$_.name -like "$services*"}|select servicename,displayname,name,status
