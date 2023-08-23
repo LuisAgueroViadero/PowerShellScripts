@@ -12,22 +12,24 @@ Start the notepad service
 . EXAMPLE
 Stop-Service -name notepad
 #>
+# Ask servers and services that need Start or Stop, if put more that one is necesary separte by colon (,)
  [CmdletBinding()] param (
   [Parameter(Mandatory=$True,HelpMessage="Introduce Servers")]
   [Alias('hostname')]   
   [string]$servers,
   [Parameter(Mandatory=$True,HelpMessage="Introduce Services") ]
-  [String]$services
-)
-Get-Service -ComputerName $servers |Where-Object {$_.name -like "$services*"}|select servicename,displayname,name,status
-param (
+  [String]$services,
   [Parameter(Mandatory=$True,HelpMessage="Stop/start")]
   [string]$StartStop
-  )
+)
+# Show state of services
+Get-Service -ComputerName $servers |Where-Object {$_.name -like "$services*"}|select servicename,displayname,name,status
+
 if ($StartStop -eq ("start")){
     Start-Service $services
     }
     Else {
     Stop-Process $services
     }
+# Show how are the service when finished
 Get-Service -ComputerName $servers |Where-Object {$_.name -like "$services*"}|select servicename,displayname,name,status
