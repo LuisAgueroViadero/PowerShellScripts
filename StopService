@@ -26,10 +26,10 @@ Stop-Service -name notepad
 Get-Service -ComputerName $servers |Where-Object {$_.name -like "$services*"}|select servicename,displayname,name,status
 
 if ($StartStop -eq ("start")){
-    Start-Service $services
+    Invoke-Command -ComputerName $servers -ScriptBlock {Start-Service $using:services}
     }
     Else {
-    Stop-Process $services
+    Invoke-Command -ComputerName $servers -ScriptBlock {Stop-Process $services}
     }
 # Show how are the service when finished
 Get-Service -ComputerName $servers |Where-Object {$_.name -like "$services*"}|select servicename,displayname,name,status
