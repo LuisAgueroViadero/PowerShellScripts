@@ -29,7 +29,7 @@ if ($StartStop -eq ("start")){
     Invoke-Command -ComputerName $servers -ScriptBlock {Start-Service $using:services}
     }
     Else {
-    Invoke-Command -ComputerName $servers -ScriptBlock {Stop-Process $services}
+    Invoke-Command -ComputerName $servers -ScriptBlock {Stop-Process $using:services}
     }
 # Show how are the service when finished
 Get-Service -ComputerName $servers |Where-Object {$_.name -like "$services*"}|select servicename,displayname,name,status
