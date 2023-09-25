@@ -1,0 +1,44 @@
+. SYNOPSIS
+Restart servers
+. DESCRIPTION
+Know when the servers we have in the loaded TXT file have been restarted. This is load in Html file and show when end the execution
+. PARAMETER fichero
+We put the path where we have the file.
+. EXAMPLE
+Get-WmiObject -class win32_OperatingSystem -computername server1 -credential administrtorname New-Object psobject -Property @{computer=server1; 
+   uptime = $os.ConvertToDateTime($os.lastbootuptime)
+#>
+
+$fichero = read-host 'Input the path of the file' #C:\directory\filename.txt'
+$servers = Get-Content $fichero
+$path = "c:\directory\"+(get-date -Format yyyyMMdd)+"_reinicio.html"
+
+read-host -AsSecureString |ConvertFrom-SecureString |Out-File C:\directory\SecurePassword.txt
+
+$User = 'domain\administratorname'
+$Pass = cat C:\directory\SecurePassword.txt | ConvertTo-SecureString
+$cred = New-object -TypeName System.Management.Automation.PSCredential -ArgumentList $User,$Pass
+
+Function Get-UpTime 
+{
+Foreach ($s in $servers)  
+{  
+ $os = Get-WmiObject -class win32_OperatingSystem -cn $s -credential $cred 
+ New-Object psobject -Property @{computer=$s; 
+   uptime = $os.ConvertToDateTime($os.lastbootuptime) 
+    } #end foreach $s     
+  }
+
+}
+
+# Entry Point *** 
+
+$upTime = Get-UpTime -servers $servers |  
+ConvertTo-Html -As Table -Fragment -PreContent " 
+<h2>Server Uptime Report</h2> 
+The following report was run on $(get-date)" | Out-String 
+
+
+ConvertTo-Html -PreContent "<h1>Server Uptime </h1>" `
+-PostContent $upTime >> $path
+Invoke-Item $path 
