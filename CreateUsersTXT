@@ -1,0 +1,13 @@
+
+
+$users="c:\temp\crear.txt"
+    $clave="WelcomeTKGroup2021!"
+    $TargetOU="OU=OU_Users,OU_INT,DC=tekagroup,DC=com" 
+   
+    $usuarios = Get-Content $users
+	foreach  ($i in $usuarios)
+	{
+		$clave=ConvertTo-SecureString $clave -AsPlainText -Force
+		New-LocalUser $i -Password $clave
+		Add-LocalGroupMember -Group $TargetOU -Member $i
+	}
