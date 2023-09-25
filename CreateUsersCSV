@@ -1,0 +1,17 @@
+<#. SYNOPSIS
+Create Users from CSV
+. DESCRIPTION
+We created the user from CSV with the head definited in the CSV (Cuenta,Nombre, Apellidos, Nombres, Descripción, etc..)
+.EXAMPLE
+New-ADUser -SamAccountName $_.Cuenta -UserPrincipalName $UPN -Name $_.Nombre -DisplayName $_.Nombre -SurName $_.Apellidos -GivenName $_.Nombres -Description $_.Descripcion -Office $_.Oficina -OfficePhone $_.Telefono -EmailAddress $_.Email `
+-Title $_.Titulo -Department $_.Departamento -Company $_.Compania -City $_.Ciudad -State $_.Estado -AccountPassword (ConvertTo-SecureString $_.Clave -AsPlainText -force) -Path $ou -Enabled $true -ChangePasswordAtLogon $true -Verbose}
+>#
+Import-Module ActiveDirectory
+[String]$Ruta = Read-Host "Ingrese la ruta donde está el archivo csv (Por Ejemplo C:\archivocsv.csv)"
+$ou="OU=OU_Users" + "," + (Get-ADDomain).DistinguishedName
+If(-Not(Get-ADOrganizationalUnit -Filter {Name -eq "OU_Users"})){New-ADOrganizationalUnit "OU_Users" -Path (Get-ADDomain).DistinguishedName}
+$dominio=(Get-ADDomain).DNSRoot
+Import-Csv -Path $Ruta | foreach-object {
+$UPN = $_.Cuenta + "@" + "$dominio"
+New-ADUser -SamAccountName $_.Cuenta -UserPrincipalName $UPN -Name $_.Nombre -DisplayName $_.Nombre -SurName $_.Apellidos -GivenName $_.Nombres -Description $_.Descripcion -Office $_.Oficina -OfficePhone $_.Telefono -EmailAddress $_.Email -Title $_.Titulo -Department $_.Departamento -Company $_.Compania -City $_.Ciudad -State $_.Estado -AccountPassword (ConvertTo-SecureString $_.Clave -AsPlainText -force) -Path $ou -Enabled $true -ChangePasswordAtLogon $true -Verbose}
+
