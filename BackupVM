@@ -1,0 +1,85 @@
+. SYNOPSIS  
+Backup Virtual Machines
+. DESCRIPTION
+Make the backup of all virtual machines when the State are running
+.EXAMPLE
+Export-VM VMname -path \\directory -ErrorAction Stop
+
+# Load the hostname when the VM are running in a variable
+$Hostname = hostname
+
+# Load de date in a variable
+$Date = Get-Date -Format dd-MMMM-yyyy_HH-mm
+
+# Load the path wihere send the VM backup
+$BackupPath = New-Item "\\directory\Backup\yperV_Export_$Date" -ItemType directory -Force
+
+# Load and create the log file in a variable
+$Logfile= "\\svrsan-hv04\Backup\logs\Backup HyperV_$date.txt" 
+
+# Set maximum age of backups
+#$DelDate = (Get-Date).AddDays(-15)
+
+# Delete old backup files
+#Get-ChildItem $BackupPath -Recurse | Where-Object {$_.LastWriteTime -lt $DelDate} | Remove-Item -Recurse
+
+# Select running VMs
+$VMs = Get-VM -ComputerName $Hostname | Where-Object {$_.State -eq "Running"}
+
+foreach ($vm in $VMs){
+    # Export selected VMs if the export fail, we create a checkpoint and save the checkpoint
+        Try {
+            Export-VM $VM -Path $BackupPath -ErrorAction Stop
+            }
+        catch [System.Management.Automation.ItemNotFoundException] {
+            # The export operation failed, try again
+        Start-Sleep 3
+        checkpoint-vm -Name $vm -SnapshotName backup_error
+        Export-VMSnapshot -Name backup_error -VMName $vm -Path $backuppath
+        Remove-VMSnapshot -Name backup_error -VMName $vm
+        }
+
+    catch {
+        # Other error occurred, log the error
+    Write-Error "An error occurred during virtual machine export: $($_.Exception.Message)"|Format-List|Out-file $Logfile -Append
+    }
+
+    }
+
+$Date = Get-Date -Format dd-MMMM-yyyy_HH-mm
+$BackupPath = New-Item "\\directory\Backup\HyperV_Export_$Date" -ItemType directory -Force
+
+
+$ExportedVMs = $VMs | Select-Object Name | Out-String
+
+# Get result$
+if(-not $?) {
+    $Result = "Failure"
+    Write-EventLog -LogName Application -Source "Backup HyperV" -EntryType Warning -EventId 2 -Message "Hyper-V VMs Export $Result. Exported VMs: $ExportedVMs"
+} else {
+    $Result = "Success"
+    Write-EventLog -LogName Application -Source "Backup HyperV" -EntryType Information -EventId 1 -Message "Hyper-V VMs Export $Result. Exported VMs: $ExportedVMs "
+} 
+# Sacamos los datos de los eventos de windows a un TXT
+Get-EventLog -LogName Application -Source 'Backup HyperV' -After $DelDate|Format-List|Out-file $Logfile -Append
+
+# Send logs via email
+$From = "user1@domain.com"
+$To = "user2@domain.com"
+$Subject = "Hyper-V Backup Report on $Hostname $Date $Result"
+
+$Body = "Hyper-V Backup Report on $Hostname $Date <br>"
+$Body += "Result: <b>$Result</b> <br>"
+$Body += "<br>"
+$Body += "Backuped VMs: $ExportedVMs <br>"
+
+$Attachment = $Logfile
+
+$SMTPServer = "domain.mail.protection.outlook.com"
+$SMTPPort = "25"
+
+#$MailPassword = Get-Content 'C:\script\MailboxSecurePass.txt' | ConvertTo-SecureString
+#$MailCred = New-Object -TypeName System.Management.Automation.PSCredential -argumentlist "user2@teka.com", $MailPassword
+
+send-MailMessage -From $From -to $To -Subject $Subject `
+-Body $Body -attachments $Attachment -BodyAsHtml -SmtpServer $SMTPServer -port $SMTPPort 
