@@ -1,8 +1,8 @@
 
 
 $users="c:\temp\crear.txt"
-    $clave="WelcomeTKGroup2021!"
-    $TargetOU="OU=OU_Users,OU_INT,DC=tekagroup,DC=com" 
+    $clave="P@sswordUs3rs"
+    $TargetOU="OU=OU_Users,OU_INT,DC=domain,DC=com" 
    
     $usuarios = Get-Content $users
 	foreach  ($i in $usuarios)
