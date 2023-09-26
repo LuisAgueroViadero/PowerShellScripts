@@ -1,0 +1,29 @@
+<#. SYNOPSIS 
+Script borrar directorios  
+.DESCIPTION
+Script para borrar los directorios dentro de un directorio desde una fechas posterior determinada
+. PARAMETER path
+Metemos el path donde se encuentra el directorio que queremos explorar
+. PARAMETER mes
+Metemos el número de mes anterior al actual que queremos borrar, si estamos en septiembre y queremos borrar
+marzo pondremos un 6 porque restariamos 6 al mes actual 9 (septiembre) - 6 (marzo)
+. EXAMPLE
+    Get-ChildItem -Path "\\directory1\directory2\" -Directory|where-object {$_.creationtime -lt ((get-date).addmonths(-3))}|remove-item
+    Este ejemplo borrara los directorios dentro del directory2 creados tres meses antes del mes actual
+#>
+
+[CmdletBinding()]
+param (
+[Parameter (Mandatory = $True)]
+[string]$directorio,
+[string]$descontar)
+ 
+
+$copias = Get-ChildItem -Path $directorio -Directory
+foreach ($copia in $copias){
+    $borrar = $copia.LastWriteTime #tambien podemos usar CreationTime por fecha de creación
+    if ($borrar -lt (Get-Date).AddDays(-$descontar)){
+    Remove-Item $copia.PSPath -Recurse
+    Write-Host "El directorio $copia será borrado"
+    }
+    } 
