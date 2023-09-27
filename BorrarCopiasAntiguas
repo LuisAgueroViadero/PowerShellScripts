@@ -2,11 +2,13 @@
 Script borrar directorios  
 .DESCIPTION
 Script para borrar los directorios dentro de un directorio desde una fechas posterior determinada
-. PARAMETER path
+. PARAMETER directorio
 Metemos el path donde se encuentra el directorio que queremos explorar
-. PARAMETER mes
+. PARAMETER descontar
 Metemos el número de mes anterior al actual que queremos borrar, si estamos en septiembre y queremos borrar
 marzo pondremos un 6 porque restariamos 6 al mes actual 9 (septiembre) - 6 (marzo)
+. PARAMETER capacidad
+Metemos la capacidad en megas que tiene que tener minimo el disco para hacer las copias 
 . EXAMPLE
     Get-ChildItem -Path "\\directory1\directory2\" -Directory|where-object {$_.creationtime -lt ((get-date).addmonths(-3))}|remove-item
     Este ejemplo borrara los directorios dentro del directory2 creados tres meses antes del mes actual
@@ -16,14 +18,21 @@ marzo pondremos un 6 porque restariamos 6 al mes actual 9 (septiembre) - 6 (marz
 param (
 [Parameter (Mandatory = $True)]
 [string]$directorio,
-[string]$descontar)
+[Parameter (Mandatory = $True)]
+[string]$descontar,
+[parameter (mandatory =  $True)]
+[int]$capacidad)
  
 
+$harddisk = Get-WmiObject -Class win32_logicaldisk |  Where-Object {$_.DeviceID -eq "F:"} |select {$_.freespace/1gb}
+if (($harddisk.'$_.freespace/1gb' )-lt $capacidad ) {
 $copias = Get-ChildItem -Path $directorio -Directory
 foreach ($copia in $copias){
     $borrar = $copia.LastWriteTime #tambien podemos usar CreationTime por fecha de creación
-    if ($borrar -lt (Get-Date).AddDays(-$descontar)){
-    Remove-Item $copia.PSPath -Recurse
+    if ($borrar -lt (Get-Date).AddMonths((-$descontar))){
+    Remove-Item $copia.PSPath -WhatIf -Recurse
     Write-Host "El directorio $copia será borrado"
+    
     }
     } 
+    }
