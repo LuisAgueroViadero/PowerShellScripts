@@ -19,7 +19,7 @@ set-location \temp
 #Charge a Administrator user to import Active Directory module
 $User = 'dominio\AdminAccount'
 # Put the file with encrypted password in a variable
-$Pass = cat C:\temp\SecurePassword_0.txt | ConvertTo-SecureString
+$Pass = cat C:\directorio\Password.txt | ConvertTo-SecureString
 # Charge the credentials in a variable to import the module how a administrator
 $Credentials = New-object -TypeName System.Management.Automation.PSCredential -ArgumentList $User,$Pass
 # Import a module from other server
