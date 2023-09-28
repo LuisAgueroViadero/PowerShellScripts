@@ -31,4 +31,4 @@ Invoke-Command -Session $sesion -ScriptBlock {Import-Module activedirectory}
 Import-PSSession -Session $sesion -Module activedirectory -Prefix rem
 #Creamos un fichero con la fecha actual donde guardaremos todo lo que ejecutemos en la sesion de PowerShell
 $date = Get-Date -Format ddMMyyyy
-Start-Transcript -path \\cl39020056\Temp\SizeHD_Restart_Event\comandos$date.txt
+Start-Transcript -path \\directorio\SizeHD_Restart_Event\comandos$date.txt
