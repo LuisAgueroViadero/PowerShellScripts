@@ -1,71 +1,76 @@
-. SYNOPSIS  
-Backup Virtual Machines
-. DESCRIPTION
-Make the backup of all virtual machines when the State are running
-.EXAMPLE
-Export-VM VMname -path \\directory -ErrorAction Stop
-
-# Load the hostname when the VM are running in a variable
+ <#. SYNOPSIS 
+Script para hacer copias de seguridad de las máquinas virtuales.
+.DESCIPTION
+Script para hacer copias de seguridad de las máquinas virtuales del servidor borrando los directorios  
+antiguos de las copias de seguriad en la unidad donde se realiza la misma.
+. PARAMETER directorio
+Metemos el path donde se encuentra el directorio que queremos explorar
+. PARAMETER descontar
+Metemos el número de días que queremos descontar a la fecha actual. Con esto borraremos los directorios en los que no se ha escrito
+anterior a ese fecha
+. PARAMETER copias
+Almacenamos los directorios dentro del path indicado
+. PARAMETER harddisk
+Almacenamos la capacidad de espacio libre que tiene la unidad donde vamos a realizar el backup
+. PARAMETER date
+Almacenamos la fecha con el formato dd-MMMM-yyyy_HH-mm
+. PARAMETER backuppath
+Variable donde almacenamos el directorio que creamos para hacer las copias de seuridad
+. PARAMETER logfile
+Variable donde almacenamos el fichero que creamos para hacer guardar los eventos de las copias de seuridad.
+. PARAMETER vms
+Variable donde almacenamos las máquinas virtuales que se están ejecutando
+. EXAMPLE
+#>
 $Hostname = hostname
-
-# Load de date in a variable
+$directorio = "\\server1\directory\Backup"
 $Date = Get-Date -Format dd-MMMM-yyyy_HH-mm
+$BackupPath = New-Item "\\server1\directory\Backup\HyperV_Export_$Date" -ItemType directory -Force
+$Logfile= New-Item "\\server1\directory\Backup\logs\Backup HyperV_$date.txt" -ItemType File -Force
+$harddisk = Get-WmiObject -Class win32_logicaldisk |  Where-Object {$_.DeviceID -eq "D:"} |select {$_.freespace/1gb}
+if (($harddisk.'$_.freespace/1gb' )-lt 2500 ) {
+$copias = Get-ChildItem -Path $directorio -Directory
+foreach ($copia in $copias){
+    $borrar = $copia.LastWriteTime #tambien podemos usar CreationTime por fecha de creación
+    if ($borrar -lt (Get-Date).AddDays((-30))){
+    Remove-Item $copia.PSPath -Recurse
+    "El directorio $copia.name ha sido borrado"|Out-File $logfile -Append
+    
+    }
+    } 
+    }
+ 
 
-# Load the path wihere send the VM backup
-$BackupPath = New-Item "\\directory\Backup\yperV_Export_$Date" -ItemType directory -Force
-
-# Load and create the log file in a variable
-$Logfile= "\\svrsan-hv04\Backup\logs\Backup HyperV_$date.txt" 
-
-# Set maximum age of backups
-#$DelDate = (Get-Date).AddDays(-15)
-
-# Delete old backup files
-#Get-ChildItem $BackupPath -Recurse | Where-Object {$_.LastWriteTime -lt $DelDate} | Remove-Item -Recurse
-
-# Select running VMs
 $VMs = Get-VM -ComputerName $Hostname | Where-Object {$_.State -eq "Running"}
 
-foreach ($vm in $VMs){
-    # Export selected VMs if the export fail, we create a checkpoint and save the checkpoint
-        Try {
-            Export-VM $VM -Path $BackupPath -ErrorAction Stop
-            }
-        catch [System.Management.Automation.ItemNotFoundException] {
-            # The export operation failed, try again
-        Start-Sleep 3
-        checkpoint-vm -Name $vm -SnapshotName backup_error
-        Export-VMSnapshot -Name backup_error -VMName $vm -Path $backuppath
-        Remove-VMSnapshot -Name backup_error -VMName $vm
-        }
-
-    catch {
-        # Other error occurred, log the error
-    Write-Error "An error occurred during virtual machine export: $($_.Exception.Message)"|Format-List|Out-file $Logfile -Append
-    }
-
-    }
-
-$Date = Get-Date -Format dd-MMMM-yyyy_HH-mm
-$BackupPath = New-Item "\\directory\Backup\HyperV_Export_$Date" -ItemType directory -Force
+ FOREACH ($VM in $VMs) 
+{
+    Try {
+        Export-VM $VM -Path $BackupPath
+        if ($?){
+            $Result = "Success"
+            Write-EventLog -LogName Application -Source "Backup HyperV" -EntryType Information -EventId 1 `
+            -Message "Hyper-V VMs Export $Result. Exported VMs: $ExportedVMs "
+            "The backup from the virtual machines $VM.name is Succesful"|Out-File -FilePath $Logfile -Append
+}
+}
+catch {
+   "El resultado del backup de la máquina $VM ha sido erroneo" | Out-File $Logfile 
+   $Result = "Failure"
+   Write-EventLog -LogName Application -Source "Backup HyperV" -EntryType Warning -EventId 2 -Message `
+   "Hyper-V VMs Export $Result. Exported VMs: $ExportedVMs" 
+   "The backup from the virtual machines $VM.name is Failure"|Out-File -FilePath $Logfile -Append
+}
+}
 
 
 $ExportedVMs = $VMs | Select-Object Name | Out-String
 
-# Get result$
-if(-not $?) {
-    $Result = "Failure"
-    Write-EventLog -LogName Application -Source "Backup HyperV" -EntryType Warning -EventId 2 -Message "Hyper-V VMs Export $Result. Exported VMs: $ExportedVMs"
-} else {
-    $Result = "Success"
-    Write-EventLog -LogName Application -Source "Backup HyperV" -EntryType Information -EventId 1 -Message "Hyper-V VMs Export $Result. Exported VMs: $ExportedVMs "
-} 
-# Sacamos los datos de los eventos de windows a un TXT
 Get-EventLog -LogName Application -Source 'Backup HyperV' -After $DelDate|Format-List|Out-file $Logfile -Append
 
 # Send logs via email
-$From = "user1@domain.com"
-$To = "user2@domain.com"
+$From = "servers@domain.com"
+$To = "administrator@domain.com"
 $Subject = "Hyper-V Backup Report on $Hostname $Date $Result"
 
 $Body = "Hyper-V Backup Report on $Hostname $Date <br>"
@@ -78,8 +83,7 @@ $Attachment = $Logfile
 $SMTPServer = "domain.mail.protection.outlook.com"
 $SMTPPort = "25"
 
-#$MailPassword = Get-Content 'C:\script\MailboxSecurePass.txt' | ConvertTo-SecureString
-#$MailCred = New-Object -TypeName System.Management.Automation.PSCredential -argumentlist "user2@teka.com", $MailPassword
-
 send-MailMessage -From $From -to $To -Subject $Subject `
--Body $Body -attachments $Attachment -BodyAsHtml -SmtpServer $SMTPServer -port $SMTPPort 
+    -Body $Body -attachments $Attachment -BodyAsHtml -SmtpServer $SMTPServer -port $SMTPPort 
+send-MailMessage -From $From -to $To -Subject $Subject `
+    -Body $Body -attachments $Attachment -BodyAsHtml -SmtpServer $SMTPServer -port $SMTPPort 
