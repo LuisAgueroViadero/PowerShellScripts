@@ -1,7 +1,16 @@
-<# .Description
-Perfil de usuario
-.Parameter
- 
+<# 
+. Synopsis
+Perfil usuario
+.Description
+Se trata del perfil que cargara el PowerShell cuando inicie, este perfil solo es para el usuario donde se inicie el PowerShell y se almacena en "C:\users\nombreusuario\documents\windowspowershell"
+.Parameter user
+ Metemos el nombre del administrador con el que vamos a cargar el modulo
+ .Parameter Pass
+ Metemos la password del administrador para que nos deje cargar el modulo
+ .Parameter credentials
+ En esta variable guardamos el usuario y la password para que lo cargue todo junto
+ .Parameter date
+ En esta variable gardamos la fecha con el formato ddMMyyy
 .Example
 .
 #>
@@ -20,3 +29,6 @@ $sesion = New-PSSession -ComputerName svrsan-dc01 -Credential $Credentials
 Invoke-Command -Session $sesion -ScriptBlock {Import-Module activedirectory}
 #Import the module and put a prefix "rem" to execute the command "get-remaduser -identity user"
 Import-PSSession -Session $sesion -Module activedirectory -Prefix rem
+#Creamos un fichero con la fecha actual donde guardaremos todo lo que ejecutemos en la sesion de PowerShell
+$date = Get-Date -Format ddMMyyyy
+Start-Transcript -path \\cl39020056\Temp\SizeHD_Restart_Event\comandos$date.txt
