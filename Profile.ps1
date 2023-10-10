@@ -24,11 +24,11 @@ $Pass = cat C:\directorio\Password.txt | ConvertTo-SecureString
 $Credentials = New-object -TypeName System.Management.Automation.PSCredential -ArgumentList $User,$Pass
 # Import a module from other server
 #Create a new session a put in a variable
-$sesion = New-PSSession -ComputerName svrsan-dc01 -Credential $Credentials
+$sesion = New-PSSession -ComputerName server1 -Credential $Credentials
 # Updown the session module from activedirectory
 Invoke-Command -Session $sesion -ScriptBlock {Import-Module activedirectory}
 #Import the module and put a prefix "rem" to execute the command "get-remaduser -identity user"
 Import-PSSession -Session $sesion -Module activedirectory -Prefix rem
 #Creamos un fichero con la fecha actual donde guardaremos todo lo que ejecutemos en la sesion de PowerShell
 $date = Get-Date -Format ddMMyyyy
-Start-Transcript -path \\directorio\SizeHD_Restart_Event\comandos$date.txt
+Start-Transcript -path \\directorio\commands\comandos$date.txt
