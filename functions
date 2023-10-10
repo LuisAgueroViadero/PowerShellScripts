@@ -86,6 +86,7 @@ Function SvrAntivirus
         $mes= $anterior.Month
         $year= $anterior.Year
         $consulta = "$year/$mes/$dia"
+	$guardararchivo ="\\unidadAlmace\directorioErrores\"+(Get-Date -Format yyyyMMdd)+"erroresReinicio.txt"
         Foreach ($s in $servers)  
             {
             Write-Verbose "Antivirus en el servidor $s"
@@ -130,14 +131,14 @@ Function SvrAntivirus
                     	cd "\Program Files\Microsoft Security Client"
                     	msseces.exe -update 
                     	Exit-PSSession
-                    catch {"El equipo $s ha dado error al actualizar y ejecutar el antivirus."|our-file $guardarAntivirus -app}}
+                    catch {"El equipo $s ha dado error al actualizar y ejecutar el antivirus."|out-file $guardarAntivirus -append}}
                     } Else{"Es un windows $SO que no podemos ejecutar el comando, es necesario otro comando." | 
                     Out-File $guardarAntivirus -Append}
     }
                 Remove-PSSession $sesion
-    }catch{"El equipo $s ha dado error al capturar el sistema operativo"|our-file $guardarAntivirus -app}
-    } #End function
-    }
+    }catch{"El equipo $s ha dado error al capturar el sistema operativo"|out-file $guardarAntivirus -append}
+    } 
+    }#End function
 
   Function Get-UpTime 
 {
@@ -147,13 +148,13 @@ Function SvrAntivirus
 Foreach ($s in $servers)  
 { 
 try { 
- $os = Get-WmiObject -class win32_OperatingSystem -computername Server01 -credential $credentials
+ $os = Get-WmiObject -class win32_OperatingSystem -computername Server01 -credential $credentials -ErrorAction Stop
  New-Object psobject -Property @{computer=$s; 
    uptime = $os.ConvertToDateTime($os.lastbootuptime)
    }
    }
     catch {
-    $error = "No se pudieron sacar el ultimo reinicio del servidor $s" | Out-File c:\Temp\SizeHD_Restart_Event\(get-date -Format yyyyMMdd)erroresReinicio.txt -Append
+    "No se pudieron sacar el ultimo reinicio del servidor $s" | Out-File c:\Temp\SizeHD_Restart_Event\(get-date -Format yyyyMMdd)erroresReinicio.txt -Append
     } 
     } #end foreach $s     
   }
