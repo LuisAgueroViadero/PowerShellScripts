@@ -56,12 +56,12 @@ Function SvrEventLog
      Foreach ($s in $servers)  
         {
         try{
-        Write-Host "Eventos del servidor $s"
+        Write-Verbose "Eventos del servidor $s"
         Get-WinEvent -ComputerName $s -LogName Application -Credential $Credentials|Where-Object {$_.leveldisplayname -eq "Error"} |select @{Label='Equipo';Expression= "MachineName"},
-          @{label='Fecha Creación';expression="TimeCreated"},@{label='ID';expression="Id"},@{label='Mensaje del Error';expression="Message"} -First 5
+          @{label='Fecha Creación';expression="TimeCreated"},@{label='ID';expression="Id"},@{label='Mensaje del Error';expression="Message"} -First 5 -ErrorAction Stop
             }
     catch {
-    $error1 = "No se pudieron sacar los eventos del servidor $s" | Out-File c:\Temp\SizeHD_Restart_Event\(get-date -Format yyyyMMdd)erroresEventos.txt -Append
+    "No se pudieron sacar los eventos del servidor $s" | Out-File c:\Temp\SizeHD_Restart_Event\(get-date -Format yyyyMMdd)erroresEventos.txt -Append
     } 
      }
 }
@@ -71,11 +71,12 @@ Function SvrHotfix
         Foreach ($s in $servers)  
         {
         Try {
-        Write-Host "Actualizaciones del servidor $s"
-        Get-HotFix -ComputerName $s -Credential $Credentials |select @{label='Equipo';expression="PsComputerName"},@{label='Descripción';expression="Description"}, HotFixID, InstalledOn -First 5
+        Write-Verbose "Actualizaciones del servidor $s"
+        Get-HotFix -ComputerName $s -Credential $Credentials |select @{label='Equipo';expression="PsComputerName"},@{label='Descripción';expression="Description"}, 
+		HotFixID, InstalledOn -First 5 -ErrorAction Stop
             }
         catch {
-        $error1 = "No se pudieron sacar las actualizaciones del servidor $s" | Out-File c:\Temp\SizeHD_Restart_Event\(get-date -Format yyyyMMdd)erroresActualizaciones.txt -Append
+        "No se pudieron sacar las actualizaciones del servidor $s" | Out-File c:\Temp\SizeHD_Restart_Event\(get-date -Format yyyyMMdd)erroresActualizaciones.txt -Append
         }
         }
     }
@@ -87,8 +88,9 @@ Function SvrAntivirus
         $consulta = "$year/$mes/$dia"
         Foreach ($s in $servers)  
             {
-            Write-Host "Antivirus en el servidor $s"
-            $SO = Get-WmiObject win32_operatingsystem -ComputerName $s -Credential $Credentials -Property * |select caption
+            Write-Verbose "Antivirus en el servidor $s"
+		Try{
+            $SO = Get-WmiObject win32_operatingsystem -ComputerName $s -Credential $Credentials -Property * |select caption -ErrorAction Stop
             if (($SO.caption -eq "Microsoft Windows Server 2016 Standard")  -or ($SO.caption -eq "Microsoft Windows Server 2012 R2 Standard")){
                 Get-MpComputerStatus -CimSession $s |select @{label='Equipo';expression='PSComputerName'},@{label='Antivirus Enabled';expression='AntivirusEnabled'}, 
                     @{label='Version';expression='AntivirusSignatureVersion'}, @{label='Fecha Actualizacion';expression='NISSignatureLastUpdated'},
@@ -102,37 +104,39 @@ Function SvrAntivirus
                 $mesupdate = $antivirusupdate.QuickScanEndTime.Month
                 $yearupdate = $antivirusupdate.QuickScanEndTime.Year
                 $results2 = "$diaupdate/$mesupdate/$yearupdate"
+		$sesion = New-PSSession -ComputerName $s -Credential $Credentials
                  if ($results -lt $consulta){
-                    $sesion = New-PSSession -ComputerName $s -Credential $Credentials
                     Enter-PSSession $sesion  
                     update-mpsignature
+		    Exit-PSSession
                     }
-                if ($results2 -lt $consulta){Start-MpScan -ScanType QuickScan} 
-                Exit-PSSession
-                Remove-PSSession $sesion
-                Else {
+                if ($results2 -lt $consulta){
+			Enter-PSSession $sesion
+			Start-MpScan -ScanType QuickScan
+			Exit-PSSession
+			} 
+                }Else {
                 if (($SO.caption -eq "Microsoft Windows Server 2008 R2 Standard") -or ($SO.caption -eq "Microsoft Windows Server 2008 R2 Enterprise")){
                     $sesion = New-PSSession -ComputerName $s -Credential $Credentials
                     Try {
-                    Enter-PSSession $sesion
+                    Enter-PSSession $sesion -ErrorAction Stop
                     cd "\Program Files\Windows Defender\"
                     msascui.exe -update
                     msascui.exe -quickscan
                     Exit-PSSession 
-                    Remove-PSSession $sesion
                     }
                     catch{
-                    cd "\Program Files\Microsoft Security Client"
-                    msseces.exe -update 
-                    Exit-PSSession
-                    Remove-PSSession $sesion}
-                    }
-
-                Else{$error1 = "Es un windows $SO que no podemos ejecutar el comando, es necesario otro comando." | 
-                    Out-File c:\Temp\SizeHD_Restart_Event\"(get-date -Format yyyyMMdd)"erroresAntivirus.txt -Append}
+			Enter-PSSession $sesion
+                    	cd "\Program Files\Microsoft Security Client"
+                    	msseces.exe -update 
+                    	Exit-PSSession
+                    catch {"El equipo $s ha dado error al actualizar y ejecutar el antivirus."|our-file $guardarAntivirus -app}}
+                    } Else{"Es un windows $SO que no podemos ejecutar el comando, es necesario otro comando." | 
+                    Out-File $guardarAntivirus -Append}
     }
-    }
-    }
+                Remove-PSSession $sesion
+    }catch{"El equipo $s ha dado error al capturar el sistema operativo"|our-file $guardarAntivirus -app}
+    } #End function
     }
 
   Function Get-UpTime 
