@@ -1,0 +1,37 @@
+<#
+. SYNOPSIS
+Test computers range 
+.PARAMETER i
+Contains where begins and adds one in each action to end at 255
+.PARAMETER pc_names
+Contains the IP
+.PARAMETER $ServiceListError
+Contain the result of command Test-WSMan that test if the computer have acitvated WinRM
+. DESCRIPTION
+Test and show the active computer that have a WinRM active
+.
+. EXAMPLE
+Test-WSMan -Computer servidor1
+
+#>
+
+for ($i = 11; $i -lt 255; $i++) {
+$pc_names = @("192.168.60." + $i)
+foreach ($pc_name in $pc_names) {  
+    
+        try {
+        $ServiceListError = Test-WSMan -ComputerName $pc_name -ErrorVariable SeviceListError
+        if ($ServiceListError) {
+            Invoke-Command -ComputerName $pc_name -ScriptBlock {
+            
+            $ip_address     = gwmi Win32_NetworkAdapterConfiguration | Where { $_.IPAddress } | Select -Expand IPAddress | Where { $_ -like '192.168.*' }
+            $pc_name        = (gwmi Win32_ComputerSystem).Name
+            "$ip_address ($pc_name) is online"
+            }
+        } else {
+        }
+        } catch {
+        "$pc_name offline"
+        }
+    }
+}
