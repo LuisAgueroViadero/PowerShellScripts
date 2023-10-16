@@ -45,21 +45,33 @@ $VMs = Get-VM -ComputerName $Hostname | Where-Object {$_.State -eq "Running"}
 
  FOREACH ($VM in $VMs) 
 {
+    $name = $vm | select -ExpandProperty name
     Try {
-        Export-VM $VM -Path $BackupPath
-        if ($?){
-            $Result = "Success"
-            Write-EventLog -LogName Application -Source "Backup HyperV" -EntryType Information -EventId 1 `
+        Export-VM $VM -Path $BackupPath -ErrorAction Stop
+        $Result = "Success"
+        Write-EventLog -LogName Application -Source "Backup HyperV" -EntryType Information -EventId 1 `
             -Message "Hyper-V VMs Export $Result. Exported VMs: $ExportedVMs "
-            "The backup from the virtual machines $VM.name is Succesful"|Out-File -FilePath $Logfile -Append
-}
-}
-catch {
-   "El resultado del backup de la máquina $VM ha sido erroneo" | Out-File $Logfile 
-   $Result = "Failure"
-   Write-EventLog -LogName Application -Source "Backup HyperV" -EntryType Warning -EventId 2 -Message `
-   "Hyper-V VMs Export $Result. Exported VMs: $ExportedVMs" 
-   "The backup from the virtual machines $VM.name is Failure"|Out-File -FilePath $Logfile -Append
+        "The backup from the virtual machines $VM.name is Succesful"|Out-File -FilePath $Logfile -Append
+        }
+    catch {
+    "El resultado del backup de la máquina $VM ha sido erroneo se procede ha realizar una copia de un SnapShot" | Out-File $Logfile 
+    $Result = "Failure"
+    Write-EventLog -LogName Application -Source "Backup HyperV" -EntryType Warning -EventId 2 -Message `
+    "Hyper-V VMs Export $Result. Exported VMs: $ExportedVMs. We procced to second copy from SanpShot" 
+    "The backup from the virtual machines $VM.name is Failure, send a SnapShot Copy"|Out-File -FilePath $Logfile -Append
+        checkpoint-vm -ComputerName $Hostname -Name $vm.Name -SnapshotName backup_error
+        Export-VMSnapshot -Name backup_error -VMName $vm.name -computername $hostname -Path $backuppath -ErrorVariable +err -ErrorAction Stop
+        Remove-VMSnapshot -Name backup_error -VMName $vm.name -computername $hostname
+        $Result = "Success"
+        Write-EventLog -LogName Application -Source "Backup HyperV" -EntryType Information -EventId 1 `
+                    -Message "Hyper-V VMs Export $Result. Exported VMs: $ExportedVMs "
+        "The backup from the virtual machines $name is $Result"|Out-File -FilePath $Logfile -Append        
+            catch {
+                  $err | out-file -FilePath $Logfile
+                      Write-EventLog -LogName Application -Source "Backup HyperV" -EntryType Warning -EventId 2 -Message `
+                         "Hyper-V VMs Export $Result. Exported VMs: $ExportedVMs." 
+                  Remove-VMSnapshot -Name backup_error -VMName $vm.name -computername $hostname
+                  }
 }
 }
 
