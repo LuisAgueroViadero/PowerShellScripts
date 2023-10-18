@@ -1,0 +1,27 @@
+<#
+. SYNOPSIS
+Funcion de menú
+. DESCRIPTION
+Creamos un menú para mostrar con diferentes opciones
+. PARAMETER 
+. PARAMETER
+Es donde guardaremos los datos que introducimos en la ventana
+. EXAMPLE
+
+
+#>
+
+
+Function showmenu {
+    Clear-Host
+    Write-Host "                                                                       Starting Menu..."
+    Write-Host ""
+    Write-Host "                                                         1. Cambiar contraseña de usuario en AD"
+    Write-Host "                                                         2. Cambiar contraseña de usuario en diferente AD "
+    Write-Host "                                                         3. Agregar Datos nuevo usuario dado de alta en AD "
+    Write-Host "                                                         4. Dar de alta a usuario en diferente AD"
+    Write-Host "                                                         5. Dar de baja a un usuario de en AD"
+    Write-Host "                                                         6. Dar de baja a in usuario de en diferente AD"
+    Write-Host "                                                         7. Exit"
+    Write-Host ""
+}
