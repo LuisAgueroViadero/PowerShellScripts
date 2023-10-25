@@ -1,0 +1,47 @@
+<#
+.SYNOMPSIS
+Programa para comprobar una lista de usuarios
+.DESCRIPCION
+ Se trata de pasar un listado de nombres de cuentas de usuarios, si los usuarios están deshabilitados los mete en un archivo CSV con el 
+ nombre el nombre de cuenta y el estado, si no estarían en el AD los mete entro archivo CSV con el nombre de cuenta.
+ .PARAMETER file
+ Cargamos el fichero donde estan las cuentas en una variable
+ .PARAMETER datos
+ Metemos el contenido del fichero en esta variable
+ .PARAMETER path & path2
+ En estas variables metemos el fichero donde vamos a guardar los datos, tanto de los deshabilitados como de los que no existen
+ .PARAMETER scvdata
+ Se trata de una matriz donde vamos a meter los datos que vamos a pasar a los CSV
+ .PARAMETER d
+ En esta variable se iran cargando uno a uno los usuarios de la variable datos
+ .PARAMTER object
+ En esta variable guardamos cada uno de los datos que vamos a mover a la matriz.
+#>
+
+
+$file = "C:\temp\txt\users.txt"
+$path2 = "c:\temp\usuariosDisabled.csv"
+$path  = "c:\temp\usuariosNoDirectory.csv"
+$datos = Get-Content $file
+$csvdata = @()
+foreach ($d in $datos) {
+$d = $d -replace (" ","")
+$object = New-Object psobject
+try {
+        $usuario = Get-ADUser -Identity $d -Properties * -ErrorAction Stop
+        If ($usuario.Enabled -eq $false){
+        "El usuario $d esta deshabilitado"
+        $object |Add-Member -MemberType NoteProperty -Name "Nombre" -Value $usuario.name
+        $object |Add-Member -MemberType NoteProperty -Name "Cuenta" -Value $usuario.samaccountname 
+        $object |Add-Member -MemberType NoteProperty -Name "Activo" -Value $usuario.enabled
+        $csvdata = $object
+        $csvdata | Export-Csv "$path2" -Delimiter ';' -Append -NoTypeInformation
+        }
+        }
+        catch {
+        "El usuario $d no aparece en el AD"
+        $object |Add-Member -MemberType NoteProperty -Name "Nombre" -Value $d
+        $csvdata = $object
+        $csvdata | Export-Csv "$path" -Delimiter ';' -Append -NoTypeInformation
+        }
+}
