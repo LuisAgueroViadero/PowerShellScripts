@@ -36,12 +36,12 @@ $j++
     while ($j -lt $numeroficheros){
     if ($oldest[$i].Name -eq $oldest[$j].Name){
         if($oldest[$j].LastWriteTime -lt $oldest[$i].LastWriteTime){
-            Remove-Item -Path $($oldest[$j]).FullName -Confirm $false
+            Remove-Item -Path $($oldest[$j]).FullName -Force
             $name = $oldest[$j].Name
             "Borramos el fichero $name"
             $oldest[$j] = $null }
             else {
-            Remove-Item -Path $($oldest[$i]).FullName -Confirm $false
+            Remove-Item -Path $($oldest[$i]).FullName -Force
             $name = $oldest[$i].Name
             "borramos el fichero $name"
             $oldest[$i] = $null }
