@@ -16,6 +16,8 @@ Se dan bajas, altas y cambios de contraseña para los dos tenant
  En esta variable guardamos el usuario y la password para que lo cargue todo junto
  .Parameter date
  En esta variable gardamos la fecha con el formato ddMMyyy
+. PARAMETER comprobar
+En esta variable metemos los datos del usuario para comprobar si existe.
 .FUNCTION ventana
 Cargamos esta funcion para sacar una ventana emergente que solicita los datos, esta ventana solo sale para el AD local
 para el otro AD no se puede porque hacemos un invoke-command que hace que se ejecute en remoto.
@@ -54,6 +56,14 @@ switch($inp){
             Write-Host "------------------------------";
             $cabecera = "Introduce la cuenta de usuario a cambiar la contraseña"
             $usuario = ventana
+            Try{ 
+            $comprobar = Get-remADUser -Identity $usuario -ErrorAction Stop 
+            $comprobar |select name,samaccountname,enabled 
+            } 
+            catch {Write-Host "La cuenta $usuario introducida es incorrecta" -ForegroundColor Red -BackgroundColor Gray
+                   Write-Host " Vuelve a elegir una opción"
+                    pause
+                    break}
             $cabecera = "Introducel la nueva password"
             $NewPass = ventana
             $cabecera = "Cambiar contraseña al conectarse si/no"
@@ -81,6 +91,14 @@ switch($inp){
             Write-Host "Entramos en el  ServerTenant2 que es el servidor del segundo tenant"
             Invoke-Command -ComputerName ServerTenant2 -Credential $Credentials -ScriptBlock {
             $usuario = Read-Host "Introduce la cuenta de usuario a cambiar"
+            Try{ 
+            $comprobar = Get-remADUser -Identity $usuario -ErrorAction Stop 
+            $comprobar |select name,samaccountname,enabled 
+            } 
+            catch {Write-Host "La cuenta $usuario introducida es incorrecta" -ForegroundColor Red -BackgroundColor Gray
+                   Write-Host " Vuelve a introducirla"
+                   $usuario = Read-Host "Introduce la cuenta el usuario" 
+                    }
             $NewPass = Read-Host "Introducel la nueva password"
             Set-ADAccountPassword -Identity $usuario -Reset -NewPassword (ConvertTo-SecureString -AsPlainText $NewPass -Force -Verbose) –PassThru
             Unlock-ADAccount –Identity $usuario #Para desbloquear la cuenta
