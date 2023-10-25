@@ -1,0 +1,53 @@
+<#
+. SYNOPSIS
+Borrar fichero con mismo nombre
+. DESCRIPTION
+Comprobamos todos los fichero de un directorio determinado y borramos lo que tengan el mismo nombre dejando
+el fichero que se ha modificado mas recientemente.
+. PARAMETER path
+Guardamos el directorio donde vamos a realizar la consulta
+. PARAMETER files
+Guardamos todos los ficheros del directorio
+. PARAMETER numeroficheros
+Contamos el número de ficheros que hemos leido para realizar el ciclo solo del número de ficheros leidos
+. PARAMETER oldest
+Guardamos todos los ficheros anteriores a una fecha indicada ordenandolos por fecha de modificación
+. PARAMETER i - j
+En estas variables guardaremos el indice con el que consultamos los ficheros para compararlos i guardara el indice
+del fichero inicial y j guardara el indice del fichero a comparar ( por eso siempre es uno mas que i) y siepre recorremos
+el total de los ficheros hasta llegar al número de los fichero leidos
+. EXAMPLE
+
+
+#>
+# Get all files in the directory
+$path = "c:\direcotrio\diretorio a comprobar"
+$maxAge = (Get-Date).AddDays(-15)
+$files = Get-ChildItem -Path $path -Recurse -File | Where-Object {! $_.PSIsContainer}
+
+# Filter files based on date
+$oldest = $files | Where-Object -FilterScript { $_.LastWriteTime -lt $maxAge -and $_.Name -ne "temp" } | Sort-Object -Property LastWriteTime
+$numeroficheros = $oldest.Count
+$i = 0
+# Delete oldest files
+while ($i -lt $numeroficheros){
+$j = $i
+$j++
+    while ($j -lt $numeroficheros){
+    if ($oldest[$i].Name -eq $oldest[$j].Name){
+        if($oldest[$j].LastWriteTime -lt $oldest[$i].LastWriteTime){
+            Remove-Item -Path $($oldest[$j]).FullName -Confirm $false
+            $name = $oldest[$j].Name
+            "Borramos el fichero $name"
+            $oldest[$j] = $null }
+            else {
+            Remove-Item -Path $($oldest[$i]).FullName -Confirm $false
+            $name = $oldest[$i].Name
+            "borramos el fichero $name"
+            $oldest[$i] = $null }
+            }
+    $j++
+    }
+    $i++
+    }
+    
