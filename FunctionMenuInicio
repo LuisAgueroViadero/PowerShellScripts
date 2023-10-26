@@ -50,12 +50,12 @@ $listBox.Location = New-Object System.Drawing.Point(10,80)
 $listBox.Size = New-Object System.Drawing.Size(250,150) 
 $listBox.Height = 100
 
-[void] $listBox.Items.Add("1. Cambiar contraseña de usuario TekaIndustrial")
-[void] $listBox.Items.Add("2. Cambiar contraseña de usuario TekaGroup")
-[void] $listBox.Items.Add("3. Agregar Datos nuevo usuario TekaIndustrial")
-[void] $listBox.Items.Add("4. Dar de alta a usuario en TekaGroup")
-[void] $listBox.Items.Add("5. Dar de baja a un usuario de TekaIndustrial")
-[void] $listBox.Items.Add("6. Dar de baja a in usuario de TekaGroup")
+[void] $listBox.Items.Add("1. Cambiar contraseña de usuario ")
+[void] $listBox.Items.Add("2. Cambiar contraseña de usuario")
+[void] $listBox.Items.Add("3. Agregar Datos nuevo usuario ")
+[void] $listBox.Items.Add("4. Dar de alta a usuario en ")
+[void] $listBox.Items.Add("5. Dar de baja a un usuario de ")
+[void] $listBox.Items.Add("6. Dar de baja a in usuario de ")
 [void] $listBox.Items.Add("7. Exit")
 
 $form.Controls.Add($listBox) 
