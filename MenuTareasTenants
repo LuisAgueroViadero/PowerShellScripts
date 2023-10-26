@@ -1,1 +1,190 @@
-
+<# 
+. Synopsis
+Menu para gestionar tareas en el AD
+.Description
+Se trata de un menu para efectuar varias tareas en los AD desde otro equipo, hay que tener en cuenta que en 
+esta versión se ha cargado en el perfil uno de los AD con los que se trabaja.
+    $sesion = New-PSSession -ComputerName svrsan-dc01 -Credential $Credentials
+    Invoke-Command -Session $sesion -ScriptBlock {Import-Module activedirectory}
+    Import-PSSession -Session $sesion -Module activedirectory -Prefix rem
+Se dan bajas, altas y cambios de contraseña para los dos tenant
+.PARAMETER user
+ Metemos el nombre del administrador con el que vamos a cargar el modulo
+ .Parameter Pass
+ Metemos la password del administrador para que nos deje cargar el modulo
+ .Parameter credentials
+ En esta variable guardamos el usuario y la password para que lo cargue todo junto
+ .Parameter date
+ En esta variable gardamos la fecha con el formato ddMMyyy
+. PARAMETER comprobar
+En esta variable metemos los datos del usuario para comprobar si existe.
+.FUNCTION ventana
+Cargamos esta funcion para sacar una ventana emergente que solicita los datos, esta ventana solo sale para el AD local
+para el otro AD no se puede porque hacemos un invoke-command que hace que se ejecute en remoto.
+.Example
+.
+#>
+. C:\directoryFunction\ventana.ps1
+. c:\directoryFunciton\menuinicio.ps1
+$opcion = menuinicio
+$inp = $opcion.Split(".")[0] 
+while(($inp -ne "7"){
+ 
+switch($inp){
+        1 {
+            Clear-Host
+            Write-Host "------------------------------";
+            $cabecera = "Introduce la cuenta de usuario a cambiar la contraseña"
+            $usuario = ventana
+            Try{ 
+            $comprobar = Get-remADUser -Identity $usuario -ErrorAction Stop 
+            $comprobar |select name,samaccountname,enabled 
+            } 
+            catch {Write-Host "La cuenta $usuario introducida es incorrecta" -ForegroundColor Red -BackgroundColor Gray
+                   Write-Host " Vuelve a elegir una opción"
+                    pause
+                    break}
+            $cabecera = "Introducel la nueva password"
+            $NewPass = ventana
+            $cabecera = "Cambiar contraseña al conectarse si/no"
+            $Change = ventana
+            # Cambiamos la password del usuario
+            Set-ADAccountPassword -Identity $usuario -Reset -NewPassword (ConvertTo-SecureString -AsPlainText $NewPass -Force -Verbose) –PassThru
+            # Desbloqueamos la cuenta (por si estuviera bloquead)
+            Unlock-ADAccount –Identity $usuario #Para desbloquear la cuenta
+            # Obligamos al usuario a cambiar la password
+            if ($change -eq "si"){Set-ADUser -Identity $usuario -ChangePasswordAtLogon $true}
+                Else  {Set-ADUser -Identity $usuario -ChangePasswordAtLogon $false}
+            # Mostramos los datos del usuario
+            Get-ADUser $usuario -Properties * | select name, pass* # Mostrar el último cambio de contraseña
+            Write-Host "------------------------------";
+            pause;
+            break
+        }
+        2 {
+            Clear-Host
+            Write-Host "------------------------------";
+            Write-Host -ForegroundColor Red -BackgroundColor DarkGreen "Change Password TekaGroup";
+            $User = 'othertenant\Administrator'
+            $Pass = cat C:\directory\SecurePassword.txt | ConvertTo-SecureString
+            $Credentials = New-object -TypeName System.Management.Automation.PSCredential -ArgumentList $User,$Pass
+            Write-Host "Entramos en el  ServerTenant2 que es el servidor del segundo tenant"
+            Invoke-Command -ComputerName ServerTenant2 -Credential $Credentials -ScriptBlock {
+            $usuario = Read-Host "Introduce la cuenta de usuario a cambiar"
+            Try{ 
+            $comprobar = Get-remADUser -Identity $usuario -ErrorAction Stop 
+            $comprobar |select name,samaccountname,enabled 
+            } 
+            catch {Write-Host "La cuenta $usuario introducida es incorrecta" -ForegroundColor Red -BackgroundColor Gray
+                   Write-Host " Vuelve a introducirla"
+                   $usuario = Read-Host "Introduce la cuenta el usuario" 
+                    }
+            $NewPass = Read-Host "Introducel la nueva password"
+            Set-ADAccountPassword -Identity $usuario -Reset -NewPassword (ConvertTo-SecureString -AsPlainText $NewPass -Force -Verbose) –PassThru
+            Unlock-ADAccount –Identity $usuario #Para desbloquear la cuenta
+            Set-ADUser -Identity $usuario -ChangePasswordAtLogon $false #Que no cambie la contraseña en el próximo inicio de sesión
+            Get-ADUser $usuario -Properties * | select name, pass* # Mostrar el último cambio de contraseña
+                                                                                             }
+            Write-Host "Se ha cambiado la contraseña del usuario indicado"
+            Write-Host "------------------------------";
+            pause;
+            break
+        }
+        3 {
+            Clear-Host
+            Write-Host "------------------------------";
+            $cabecera = "Poner el nombre del usuario (el nombre de la cuenta)"
+            $username = ventana
+            $cabecera = "Departamento donde va a trabajar"
+            $departamento = ventana
+            $cabecera = "Grupo al que pertenece"
+            $grupo = ventana
+            $cabecera = "Poner el nombre del usuario de referencia (nombre de cuenta)"
+            $UserReference= ventana
+            Set-remADUser -identity $username -Office $grupo -state $grupo -scriptpath "logon.vbs" -department $departamento -company $departamento -Country ES
+            Get-remADUser -Identity $UserReference -Properties memberof | select -ExpandProperty memberof | Add-remADGroupMember -Members $username
+            Write-Host -ForegroundColor red -BackgroundColor white "El nuevo usuario $username tiene los siguientes grupos"
+            Get-remADUser -Identity $username -Properties memberof | select -ExpandProperty memberof
+            Write-Host -ForegroundColor red -BackgroundColor white "El usuario de referencia $UserReference tiene los siguientes grupos"
+            Get-remADUser -Identity $UserReference -Properties memberof | select -ExpandProperty memberof
+            Write-Host "------------------------------";
+            pause;
+            break
+            }
+        4 {
+            Clear-Host
+            Write-Host "------------------------------";
+            Write-Host -ForegroundColor Red -BackgroundColor DarkGreen "New User Tenant segundo"
+            $User = 'segundotenant\administrador'
+            $Pass = cat C:\directory\SecurePassword.txt | ConvertTo-SecureString
+            $Credentials = New-object -TypeName System.Management.Automation.PSCredential -ArgumentList $User,$Pass
+            Write-Host "Entramos en el  ServerTenant2 que es el servidro del segundo Tenant"
+            Invoke-Command -ComputerName ServerTenant2 -Credential $Credentials -ScriptBlock {
+            [string] $name
+            $name = Read-Host "Introduce el Nombre " 
+            $surname = Read-Host "Introuce Apellido "
+            $account= $name.Split(" ")[0] #Cogemos la primera parte del nombre si es compuesto
+            $account += "." + $surname.Split(" ")[0] # Cogemos el primer apellido y se lo unimos al primer nombre separado por un punto.
+            Try {
+                $estado = Get-ADUser $account |select enabled -ErrorAction Stop
+                "El usuario $account ya existe y su estado es $estado "
+                }
+    
+            Catch {
+    
+                $Country = Read-Host "Introduce el País  (se pone el codigo Iso 3166-I)" 
+                $Office = Read-Host "Introduce la OU del país " 
+                $password = Read-Host "Introduce la password " 
+                $tenant = Read-Host "Introduce el directorio (ejempro: @tenant.com) " 
+                $TargetOU="OU=Users" + "," +"OU=OU_$Office" + "," + (Get-ADDomain).distinguishedname
+                $email ="$account$tenant"
+                $nameDisplay = "$name $surname"
+                New-aduser  -Name $nameDisplay -SamAccountName $account -DisplayName $nameDisplay -GivenName $name  -Office $Office `
+                     -state $Office -company $Office -UserPrincipalName $email -Surname $surname -EmailAddress $email  `
+                     -AccountPassword (ConvertTo-SecureString $password -AsPlainText -Force) -Enabled $True -Country $Country -Path $TargetOU
+                if ($Office -eq "xxxx"){Add-ADGroupMember -Identity GrupoAgregado -Members $account}
+                if ($Office -eq "zzzz"){Add-ADGroupMember -Identity GrupoAgregado -Members $account}
+                "Se crea el usuario $nameDisplay con cuenta $account y password $password en el directorio $TargetOU"
+                    } 
+            Write-Host "------------------------------";
+            pause;
+            break
+            }
+            }
+        5 {
+            Write-Host "------------------------------";
+            Clear-Host
+            Write-Host -ForegroundColor Red -BackgroundColor DarkGreen "Baja usuario Tenant principal"
+            $fecha = Get-Date -Format dd/MM/yyyy
+            $cabecera = "Introduce el nombre de la cuenta a dar de baja"
+            $Usuario = ventana
+            Set-remADUser -Identity $Usuario -Enabled $false -Description "Disabled  $fecha" 
+            Get-remADUser -Identity $usuario -Properties * | select name, samaccountname,enabled,description
+            Write-Host "------------------------------";
+            pause; 
+            break
+            }
+        6 {
+            Write-Host "------------------------------";
+            Clear-Host
+            Write-Host -ForegroundColor Red -BackgroundColor DarkGreen "Baja usuario Segundo Tenant"
+            $User = 'segundotenant\administrador'
+            $Pass = cat C:\directory\SecurePassword.txt | ConvertTo-SecureString
+            $Credentials = New-object -TypeName System.Management.Automation.PSCredential -ArgumentList $User,$Pass
+            Invoke-Command -ComputerName ServerTenant2 -Credential $Credentials -ScriptBlock {
+            $fecha = Get-Date -Format dd/MM/yyyy
+            $usuario = Read-Host "Introduce la cuenta del usuario a dar de baja"
+            Set-ADUser -Identity $usuario -enabled $false -desciption "Disabled  $fecha" 
+            Get-ADUser -Identity $usuario -Properties * |select name, samaccountname,enabled,description
+                                                                                             }
+            Write-Host "------------------------------";
+            pause; 
+            break
+            }
+        7 {"Exit"; break}
+        default {Write-Host -ForegroundColor red -BackgroundColor white "Invalid option. Please select another option";pause}
+        
+    }
+$opcion = menuinicio
+$inp = $opcion.Split(".")[0] 
+}
