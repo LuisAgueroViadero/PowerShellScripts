@@ -28,7 +28,7 @@ para el otro AD no se puede porque hacemos un invoke-command que hace que se eje
 . c:\directoryFunciton\menuinicio.ps1
 $opcion = menuinicio
 $inp = $opcion.Split(".")[0] 
-while(($inp -ne "7"){
+while($inp -ne "7"){
  
 switch($inp){
         1 {
