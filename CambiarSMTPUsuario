@@ -1,0 +1,37 @@
+<#
+. SYNOPSIS
+Se trata de cambiar el SMTP principal de una cuenta de usuario
+. DESCRIPTION
+Queremos cambiar la cuenta SMTP principal de un usuario, si lo que queremos es agregar un alias tendremos que cambiar el $Prosy el SMTP por smtp
+. PARAMETER newproxy
+el porxy que queremos modificar
+. PARAMETER Departamento
+Se introduce el departamento en el que va a trabajar el usuario.
+. EXAMPLE
+Get-WmiObject -class win32_OperatingSystem -computername server -credential administratorname New-Object psobject -Property @{computer=server; 
+   uptime = $os.ConvertToDateTime($os.lastbootuptime)#>
+
+
+
+$User = 'administrador'
+$Pass = cat C:\SecurePasswordencriptada.txt | ConvertTo-SecureString
+$Credentials = New-object -TypeName System.Management.Automation.PSCredential -ArgumentList $User,$Pass
+Write-Host "Entramos en el  servidor"
+Invoke-Command -ComputerName servidor -Credential $Credentials -ScriptBlock {
+            $usuario = Read-Host "Introduce la cuenta de usuario a cambiar"
+            Try{ 
+            $comprobar = Get-ADUser -Identity $usuario -ErrorAction Stop 
+            $comprobar |select name,samaccountname,enabled 
+            } 
+            catch {Write-Host "La cuenta $usuario introducida es incorrecta" -ForegroundColor Red -BackgroundColor Gray
+                   Write-Host " Vuelve introducir la cuenta"
+                   $usuario = Read-Host "Introduce la cuenta de usuario a cambiar"
+                   }
+             
+$newproxy = Read-Host "introduce el dominio (ejemplo @pruebas.com)"
+$SAM = $usuario
+$Proxy = "SMTP:"+$SAM+$newproxy
+Get-ADUser $usuario | Set-AdUser -Add @{Proxyaddresses=$Proxy}
+#Set-ADUser -Identity $usuario -Enabled $true
+Get-ADUser $usuario -Properties * | select displayname,proxyaddresses,enabled
+}
