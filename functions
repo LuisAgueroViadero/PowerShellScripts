@@ -57,8 +57,8 @@ Function SvrEventLog
         {
         try{
         Write-Verbose "Eventos del servidor $s"
-        Get-WinEvent -ComputerName $s -LogName Application -Credential $Credentials|Where-Object {$_.leveldisplayname -eq "Error"} |select @{Label='Equipo';Expression= "MachineName"},
-          @{label='Fecha Creación';expression="TimeCreated"},@{label='ID';expression="Id"},@{label='Mensaje del Error';expression="Message"} -First 5 -ErrorAction Stop
+        Get-WinEvent -ComputerName $s -LogName Application -Credential $Credentials -ErrorAction Stop | Where-Object {$_.leveldisplayname -eq "Error"} |select @{Label='Equipo';Expression= "MachineName"},
+          @{label='Fecha Creación';expression="TimeCreated"},@{label='ID';expression="Id"},@{label='Mensaje del Error';expression="Message"} -First 5 
             }
     catch {
     "No se pudieron sacar los eventos del servidor $s" | Out-File c:\Temp\SizeHD_Restart_Event\(get-date -Format yyyyMMdd)erroresEventos.txt -Append
@@ -72,8 +72,8 @@ Function SvrHotfix
         {
         Try {
         Write-Verbose "Actualizaciones del servidor $s"
-        Get-HotFix -ComputerName $s -Credential $Credentials |select @{label='Equipo';expression="PsComputerName"},@{label='Descripción';expression="Description"}, 
-		HotFixID, InstalledOn -First 5 -ErrorAction Stop
+        Get-HotFix -ComputerName $s -Credential $Credentials -ErrorAction Stop | select @{label='Equipo';expression="PsComputerName"},@{label='Descripción';expression="Description"}, 
+		HotFixID, InstalledOn -First 5 
             }
         catch {
         "No se pudieron sacar las actualizaciones del servidor $s" | Out-File c:\Temp\SizeHD_Restart_Event\(get-date -Format yyyyMMdd)erroresActualizaciones.txt -Append
@@ -91,9 +91,9 @@ Function SvrAntivirus
             {
             Write-Verbose "Antivirus en el servidor $s"
 		Try{
-            $SO = Get-WmiObject win32_operatingsystem -ComputerName $s -Credential $Credentials -Property * |select caption -ErrorAction Stop
+            $SO = Get-WmiObject win32_operatingsystem -ComputerName $s -Credential $Credentials -Property * -ErrorAction Stop |select caption 
             if (($SO.caption -eq "Microsoft Windows Server 2016 Standard")  -or ($SO.caption -eq "Microsoft Windows Server 2012 R2 Standard")){
-                Get-MpComputerStatus -CimSession $s |select @{label='Equipo';expression='PSComputerName'},@{label='Antivirus Enabled';expression='AntivirusEnabled'}, 
+                Get-MpComputerStatus -CimSession $s -ErrorAction Stop |select @{label='Equipo';expression='PSComputerName'},@{label='Antivirus Enabled';expression='AntivirusEnabled'}, 
                     @{label='Version';expression='AntivirusSignatureVersion'}, @{label='Fecha Actualizacion';expression='NISSignatureLastUpdated'},
                     @{label='Fecha last Scaned';expression='FullScanEndTime'}
                 $antivirusupdate = get-mpcomputerstatus -CimSession $s
@@ -127,7 +127,7 @@ Function SvrAntivirus
                     Exit-PSSession 
                     }
                     catch{
-			Enter-PSSession $sesion
+			Enter-PSSession $sesion -ErrorAction Stop
                     	cd "\Program Files\Microsoft Security Client"
                     	msseces.exe -update 
                     	Exit-PSSession
@@ -168,7 +168,7 @@ Function Get-DiskSpace
    { 
    Try{ 
 	 Write-Host "Se lanza consulta de volumenes al servidor $s"
-     Get-WmiObject -Class win32_volume -ComputerName $s -credential $Credentials | 
+     Get-WmiObject -Class win32_volume -ComputerName $s -credential $Credentials  -ErrorAction Stop | 
         Select-Object @{LABEL='Equipo';EXPRESSION={$s}}, 
         driveletter, label,  
         @{LABEL='GBfreespace';EXPRESSION={"{0:N2}" -f ($_.freespace/1GB)}}, @{LABEL='GBtotal';EXPRESSION={"{0:N2}" -f ($_.Capacity/1GB)}} 
