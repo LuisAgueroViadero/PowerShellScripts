@@ -1,0 +1,22 @@
+$User = 'dominio\administrador'
+$Pass = cat C:\SecurePassword_encriptada.txt | ConvertTo-SecureString
+$Credentials = New-object -TypeName System.Management.Automation.PSCredential -ArgumentList $User,$Pass
+Write-Host "Entramos en el servidor que es el servidro de TEKAGroup"
+Invoke-Command -ComputerName server -Credential $Credentials -ScriptBlock {
+$usuario = Read-Host "Introduce la cuenta de usuario a cambiar"
+Try{ 
+            $comprobar = Get-ADUser -Identity $usuario -ErrorAction Stop 
+            $comprobar |select name,samaccountname,enabled 
+            } 
+catch {
+            Write-Host "La cuenta $usuario introducida es incorrecta" -ForegroundColor Red -BackgroundColor Gray
+            Write-Host " Vuelve introducir la cuenta"
+            $usuario = Read-Host "Introduce la cuenta de usuario a cambiar"
+                   }
+$newproxy = Read-Host "introduce el dominio (ejemplo @dominio.com)"
+$SAM = $usuario
+$Proxy = "SMTP:"+$SAM+$newproxy
+Get-ADUser $usuario | Set-AdUser -Add @{Proxyaddresses=$Proxy}
+#Set-ADUser -Identity $usuario -Enabled $true
+Get-ADUser $usuario -Properties * | select displayname,proxyaddresses,enabled
+}
