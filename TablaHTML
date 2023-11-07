@@ -1,0 +1,69 @@
+<# 
+. SYNOPSIS
+Estilo para HTML
+. DESCRIPTION
+Como colocar los datos extraidos en formato HTML enriquecido
+#>
+
+$ProcessFileName = "c:\temp\services.html"
+New-Item -ItemType file $ProcessFileName -Force
+
+
+Function writeHtmlHeader { param($fileName) 
+$date = ( get-date ).ToString('yyyy/MM/dd') 
+Add-Content $fileName "<html>" 
+Add-Content $fileName "<head>" 
+Add-Content $fileName "<meta http-equiv='Content-Type' content='text/html; charset=iso-8859-1'>" 
+Add-Content $fileName '<title>Reporte de procesos</title>' 
+Add-Content $fileName '<STYLE TYPE="text/css">'
+add-content $fileName  "<!--" 
+add-content $fileName  "td {" 
+add-content $fileName  "font-family: Tahoma;" 
+add-content $fileName  "font-size: 11px;" 
+add-content $fileName  "border-top: 1px solid #999999;" 
+add-content $fileName  "border-right: 1px solid #999999;" 
+add-content $fileName  "border-bottom: 1px solid #999999;" 
+add-content $fileName  "border-left: 1px solid #999999;" 
+add-content $fileName  "padding-top: 0px;" 
+add-content $fileName  "padding-right: 0px;" 
+add-content $fileName  "padding-bottom: 0px;" 
+add-content $fileName  "padding-left: 0px;" 
+add-content $fileName  "}" 
+add-content $fileName  "body {" 
+add-content $fileName  "margin-left: 5px;" 
+add-content $fileName  "margin-top: 5px;" 
+add-content $fileName  "margin-right: 0px;" 
+add-content $fileName  "margin-bottom: 10px;" 
+add-content $fileName  "" 
+add-content $fileName  "table {" 
+add-content $fileName  "border: thin solid #000000;" 
+add-content $fileName  "}" 
+add-content $fileName  "-->" 
+add-content $fileName  "</style>" 
+Add-Content $fileName "</head>" 
+Add-Content $fileName "<body>" 
+add-content $fileName  "<table width='100%'>" 
+add-content $fileName  "<tr bgcolor='#CCCCCC'>" 
+add-content $fileName  "<td colspan='7' height='25' align='center'>" 
+add-content $fileName  "<font face='tahoma' color='#003399' size='4'><strong> Reporte de Procesos - $date</strong></font>" 
+add-content $fileName  "</td>" 
+add-content $fileName  "</tr>" 
+add-content $fileName  "</table>"
+}
+
+writeHtmlHeader $ProcessFileName 
+#Ejecutamos el comando Central 
+add-content $ProcessFileName  "<table width='100%'>" 
+add-content $ProcessFileName "<tr bgcolor='#CCCCCC'>" 
+add-content $ProcessFileName "<td> Handles </td> <td>ProcessName</td>" 
+add-content $ProcessFileName "</td> " 
+add-content $ProcessFileName "</tr>" 
+$dp = Get-service 
+foreach ($item in $dp) {     
+    Write-Host $item.ProcessName     
+    Add-Content $ProcessFileName "<tr>"     
+    Add-Content $ProcessFileName "<td>$item.Handles</td>"     
+    Add-Content $ProcessFileName "<td>$item.ProcessName</td>"     
+    Add-Content $ProcessFileName "</tr>" 
+    } 
+Add-Content $ProcessFileName "</table>"
