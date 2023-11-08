@@ -1,0 +1,18 @@
+<#
+.SYNOPSIS funcion para comprobar usuarios en AD
+.DESCRIPTION se trata de una funcion para comprobar que le usuario que introducimos está realmente en el Directorio Activo.
+.PARAMETER comprobar
+en esta variable guardamos los datos del usuario si no existe pasaremos a dar un error de usuario incorrecto o no existe
+.PARAMETER usuario
+Esta variable viene dada del programa que hace la llamada a la función y contiene el usuario sobre el que se realiza la consulta
+
+function comprobar{
+
+            Try{ 
+            $comprobar = Get-ADUser -Identity $usuario -ErrorAction Stop 
+            $comprobar |select name,samaccountname,enabled 
+            } 
+            catch {Write-Host "La cuenta $usuario introducida es incorrecta" -ForegroundColor Red -BackgroundColor Gray}
+            pause;
+            break
+}
