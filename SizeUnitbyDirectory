@@ -1,0 +1,41 @@
+<# . SYNOPSIS 
+Script para sacar el tamño de los directorios de una unidad
+.DESCIPTION
+Se trata de un script para poder sacar el tamaño que tienen los directorios de una unidad y controlar de esta 
+manera cuales son los directorios que mas crecen, los datos se guardan en un archivo CSV
+. PARAMETER Fecha
+Guardamos la fecha del día para ponerla en el fichero
+. PARAMETER Unidad
+La unidad donde vamos a comprobar el tamaño de los directorios
+. PARAMETER path
+Donde vamos a guardar los datos extraidos
+. PARAMETER csvdata
+Variable (Hash) donde vamos a almacenar los datos extraidos para pasarlos al archivo CSV
+. PARAMETER serverdatos
+Variable intermedia donde guardamos todos los datos de la unidad antes de procesarlos
+. PARAMETER datos
+Variable donde ponemos cada directorio para sumar indivialmente el tamano de los datos que contiene
+. PARAMETER TotalSize
+Almacenamos el tamaño del directorio
+. PARAMETER object
+Donde vamos a poner los datos de cada directorio antes de pasarlos a la variable csvdata que es donde se almacenarán todos los datos
+antes de pasarlos al CSV
+. EXAMPLE
+(Get-childitem -path c:\ -recurse | measure-object -sum length).sum / 1GB
+#>
+
+$fecha = Get-Date
+$unidad = "f:\"
+New-Item "c:\directory\Unidad_$fecha.csv" -Force -ItemType file
+$path  = "c:\directory\Unidad_$fecha.csv"
+$csvdata = @()
+$serverdatos = Get-ChildItem -Path $unidad 
+foreach ($datos in $serverdatos){
+    $object = New-Object psobject
+    $totalSize = (Get-ChildItem $datos -Recurse | Measure-Object -Sum length).sum / 1GB
+    $object |Add-Member -MemberType NoteProperty -Name "Nombre" -Value $datos.name
+    $object |Add-Member -MemberType NoteProperty -Name "Tamanno en GB" -Value $totalsize 
+    $object |Add-Member -MemberType NoteProperty -Name "Fecha" -Value $fecha
+    $csvdata += $object    
+    }
+    $csvdata | Export-Csv "$path" -Delimiter ';' -NoTypeInformation -Append
