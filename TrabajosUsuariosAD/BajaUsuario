@@ -1,0 +1,32 @@
+ <#. SYNOPSIS 
+Script para darde baja a un usuario
+.DESCIPTION
+Script para dar de baja a un usuario en un tenant
+. PARAMETER Fecha  
+En esta variable guardamos la fecha que vamos a introducir en la descripción del usuario
+. PARAMETER NombreUsuario
+Solicitamos el nombre de la cuenta del usuario
+. PARAMETER 
+
+. PARAMETER 
+
+. PARAMETER
+
+. PARAMETER
+
+. PARAMETER
+
+. PARAMETER
+
+. EXAMPLE
+set-ADUser -Identity nombrecuenta -Enabled $false -Description "fecha actual"
+#>
+. c:\directory\function\funcionVentana.ps1
+. c:\directory\function\funcioncomprobarusuario.ps1
+#Dar de baja un usuario
+$fecha = Get-Date
+$cabecera = "Introduce la cuenta a dar de baja"
+$nombreusuario = ventana
+comprobarusuario #esta funcion esta en el directory function en el fichero funcioncomprobarusuario.ps1 para comprobar si el usuario existe.
+Set-remADUser -Identity $nombreusuario -Enabled $false -Description $fecha
+Get-ADUser -Identity $nombreusuario -Properties * | select name, samaccountname, enabled, description
