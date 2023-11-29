@@ -188,7 +188,7 @@ switch($inp){
             $Pass = cat C:\directory\SecurePassword.txt | ConvertTo-SecureString
             $Credentials = New-object -TypeName System.Management.Automation.PSCredential -ArgumentList $User,$Pass
             Write-Host "Entramos en el  ServerTenant2 que es el servidro de Tenant2"
-            Invoke-Command -ComputerName ESTKIADS0002 -Credential $Credentials -ScriptBlock {
+            Invoke-Command -ComputerName ServerTenant2 -Credential $Credentials -ScriptBlock {
             Write-Host "Introduce datos del grupo a buscar"
             $grupo = Read-Host
             Write-Host "------------------------------";
@@ -202,7 +202,25 @@ switch($inp){
         6 {
             Write-Host "------------------------------";
             Clear-Host
-            
+            $cabecera = "Introduce datos del usuario a buscar"
+            $usuario = ventana          
+            $usuarios = Get-ADUser -Filter "name -like '*$usuario*'" -ErrorAction stop | select name, samaccountname, enabled
+            if ($usuarios.length.Equals(0)){
+            Write-Host "No hay usuarios en el Tenant1 con esos datos"
+            $User = 'tenant2\administrador'
+            $Pass = cat C:\directory\SecurePassword | ConvertTo-SecureString
+            $Credentials = New-object -TypeName System.Management.Automation.PSCredential -ArgumentList $User,$Pass
+            Write-Host "Entramos en el  Tenant2 que es el servidor del segundo Tenant"
+            Invoke-Command -ComputerName ServerTenant2 -Credential $Credentials -ScriptBlock {
+            Write-Host " estos son los que encontramos en el Tenant2 "
+            Get-AdUser -Filter "name -like '*$using:usuario*'" -ErrorAction stop | select name, samaccountname, enabled
+             }
+             }
+             Else {
+             Write-Host "Estos son los usuarios que contienen los caracteres $usuario"
+             $usuarios
+                Write-Host 
+            }            
             Write-Host "------------------------------";
             pause;
             Clear-Host 
