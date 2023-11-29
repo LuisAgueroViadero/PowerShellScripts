@@ -1,0 +1,217 @@
+<# 
+. Synopsis
+Menu para gestionar tareas en el AD
+.Description
+Se trata de un menu para efectuar varias tareas en los AD desde otro equipo, hay que tener en cuenta que en 
+esta versión se ha cargado en el perfil uno de los AD con los que se trabaja.
+    $sesion = New-PSSession -ComputerName ServerTenant1 -Credential $Credentials
+    Invoke-Command -Session $sesion -ScriptBlock {Import-Module activedirectory}
+    Import-PSSession -Session $sesion -Module activedirectory -Prefix rem
+Se quitan grupos a usuarios de varios tenant, se buscan grupos y se borran equipos
+.PARAMETER user
+ Metemos el nombre del administrador con el que vamos a cargar el modulo
+ .Parameter Pass
+ Metemos la password del administrador para que nos deje cargar el modulo
+ .Parameter credentials
+ En esta variable guardamos el usuario y la password para que lo cargue todo junto
+ .Parameter date
+ En esta variable gardamos la fecha con el formato ddMMyyy
+.FUNCTION ventana
+Cargamos esta funcion para sacar una ventana emergente que solicita los datos, esta ventana solo sale para el AD local
+para el otro AD no se puede porque hacemos un invoke-command que hace que se ejecute en remoto.
+.Example
+.
+#>
+#Trabajo con usuarios
+. C:\temp\Function\FunctionVentana.ps1
+Function menuinicio {
+Add-Type -AssemblyName System.Windows.Forms
+Add-Type -AssemblyName System.Drawing
+
+$form = New-Object System.Windows.Forms.Form 
+$form.Text = "Select a Computer"
+$form.Size = New-Object System.Drawing.Size(300,300) 
+$form.StartPosition = "CenterScreen"
+
+$OKButton = New-Object System.Windows.Forms.Button
+$OKButton.Location = New-Object System.Drawing.Point(100,230)
+$OKButton.Size = New-Object System.Drawing.Size(75,23)
+$OKButton.Text = "OK"
+$OKButton.DialogResult = [System.Windows.Forms.DialogResult]::OK
+$form.AcceptButton = $OKButton
+$form.Controls.Add($OKButton)
+
+$CancelButton = New-Object System.Windows.Forms.Button
+$CancelButton.Location = New-Object System.Drawing.Point(190,230)
+$CancelButton.Size = New-Object System.Drawing.Size(75,23)
+$CancelButton.Text = "Cancel"
+$CancelButton.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
+$form.CancelButton = $CancelButton
+$form.Controls.Add($CancelButton)
+
+$label = New-Object System.Windows.Forms.Label
+$label.Location = New-Object System.Drawing.Point(10,20) 
+$label.Size = New-Object System.Drawing.Size(280,20)
+$label.Text = "Por favor selecciona una opción:"
+$form.Controls.Add($label) 
+
+$listBox = New-Object System.Windows.Forms.ListBox 
+$listBox.Location = New-Object System.Drawing.Point(10,80) 
+$listBox.Size = New-Object System.Drawing.Size(250,150) 
+$listBox.Height = 100
+
+[void] $listBox.Items.Add("1. Quitar Grupo a usuario en Tenant1")
+[void] $listBox.Items.Add("2. Quitar Grupo a usuario en Tenant2")
+[void] $listBox.Items.Add("3. Borrar Equipo Tenant1")
+[void] $listBox.Items.Add("4. Buscar Grupo en Tenant1")
+[void] $listBox.Items.Add("5. Buscar Grupo en Tenant2")
+[void] $listBox.Items.Add("6. ")
+[void] $listBox.Items.Add("7. Exit")
+
+$form.Controls.Add($listBox) 
+
+$form.Topmost = $True
+
+$result = $form.ShowDialog()
+
+if ($result -eq [System.Windows.Forms.DialogResult]::OK)
+{
+    $x = $listBox.SelectedItem
+    $x
+    }
+if ($result -eq [System.Windows.Forms.DialogResult]::Cancel)
+{
+    $x = "7"
+    $x
+}
+}
+
+$fecha = Get-Date -Format dd/MM/yyyy
+$opcion = menuinicio
+$inp = $opcion.Split(".")[0] 
+while($inp -ne "7"){
+ 
+switch($inp){
+        1 {
+            Clear-Host
+            Write-Host "------------------------------";
+            #Borrar grupo de usuario
+            $cabecera = "Introduce el Usuario"
+            $nombreusuario = ventana
+            Try{
+            Write-Host " Los grupos del usuario $nombreusuario son :" 
+            Get-ADUser -Identity $nombreusuario -Properties memberof | select -ExpandProperty memberof
+            $cabecera = "Introduce el Grupo a borrar"
+            $grupo = ventana
+                        if ($grupo -eq ""){
+                                Write-Host " No se ha introducido grupo "
+                                Pause;
+                                Clear-Host
+                                break
+                                }
+            Remove-ADGroupMember -Members $nombreusuario -Identity $grupo
+            Write-Host "Al usuario $nombreusuario se le ha borrado del grupo $grupo"
+            Write-Host "------------------------------";
+            }
+            catch { Write-Host " El usuario $nombreusuario no está en el AD"}
+            pause;
+            Clear-Host
+            break
+        }
+        2 {
+            Clear-Host
+            Write-Host "------------------------------";
+            Write-Host -ForegroundColor Red -BackgroundColor DarkGreen "Remove Group User Tenant2";
+            $User = 'Tenant2\administrator'
+            $Pass = cat C:\directory\SecurePassword.txt | ConvertTo-SecureString
+            $Credentials = New-object -TypeName System.Management.Automation.PSCredential -ArgumentList $User,$Pass
+            Write-Host "Entramos en el  ServerTenant2 que es el servidro de Tenant2"
+            Invoke-Command -ComputerName ServerTenant2 -Credential $Credentials -ScriptBlock {
+            $nombreusuario = Read-Host "Introduce la cuenta de usuario al que queremos borrar el grupo"
+            Try{ 
+            Write-Host " El usuario $nombreusuario tiene los siguientes grupos:"
+            Get-ADUser -Identity $usuario -properties memberof | select -ExpandProperty memberof -ErrorAction Stop 
+            $grupo = Read-Host "Introduce el grupo a borrar"
+                        if ($grupo -eq ""){
+                                Write-Host " No se ha introducido grupo "
+                                Pause;
+                                Clear-Host
+                                break
+                                }
+
+            Remove-ADGroupMember -Members $nombreusuario -Identity $grupo
+            Write-Host "Al usuario $nombreusuario se le ha borrado del grupo $grupo"
+            Write-Host "------------------------------";
+
+            } 
+            catch {Write-Host "La cuenta $usuario introducida es incorrecta" -ForegroundColor Red -BackgroundColor Gray
+            }
+            pause;
+            Clear-Host
+            break 
+            }
+            
+        }
+        3 {
+            Clear-Host
+
+            Write-Host "------------------------------";
+            $cabecera = "Introduce el equipo a borrar"
+            $dato = ventana
+            $equipoborrar = Get-remADComputer $dato
+            $equipo = $dato.distinguishedname
+            Remove-remADComputer -Identity $equipo -force 
+            Write-Host " Se ha borrado el equipo $equipo"
+            Write-Host "------------------------------";
+            pause;
+            Clear-Host
+            break
+            }
+        4 {
+            Clear-Host            
+            $cabecera = "Introduce datos del grupo a buscar"
+            $grupo = ventana
+            Write-Host "------------------------------";
+            Write-Host "Estos son los grupos que contienen los caracteres $grupo"
+            Get-remADGroup -Filter "name -like '*$grupo*'" | select name
+            Write-Host "------------------------------";
+            pause;
+            break             
+            }
+
+            
+        5 {            
+            Clear-Host           
+            Write-Host "------------------------------";
+            Write-Host -ForegroundColor Red -BackgroundColor DarkGreen "Found Group in Tenant2";
+            $User = 'tenant2\administrator'
+            $Pass = cat C:\directory\SecurePassword.txt | ConvertTo-SecureString
+            $Credentials = New-object -TypeName System.Management.Automation.PSCredential -ArgumentList $User,$Pass
+            Write-Host "Entramos en el  ServerTenant2 que es el servidro de Tenant2"
+            Invoke-Command -ComputerName ESTKIADS0002 -Credential $Credentials -ScriptBlock {
+            Write-Host "Introduce datos del grupo a buscar"
+            $grupo = Read-Host
+            Write-Host "------------------------------";
+            Write-Host "Estos son los grupos que contienen los caracteres $grupo"
+            Get-ADGroup -Filter "name -like '*$grupo*'" | select name
+            Write-Host "------------------------------";
+            pause;
+            Clear-Host
+            break
+            }}
+        6 {
+            Write-Host "------------------------------";
+            Clear-Host
+            
+            Write-Host "------------------------------";
+            pause;
+            Clear-Host 
+            break
+            }
+        7 {"Exit"; break}
+        default {Write-Host -ForegroundColor red -BackgroundColor white "Invalid option. Please select another option";pause}
+        
+    }
+$opcion = menuinicio
+$inp = $opcion.Split(".")[0] 
+}
