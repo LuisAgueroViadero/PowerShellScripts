@@ -177,7 +177,7 @@ switch($inp){
             Write-Host "------------------------------";
             pause;
             break             
-            }
+            } # End Opción 4
 
             
         5 {            
@@ -198,38 +198,35 @@ switch($inp){
             pause;
             Clear-Host
             break
-            }}
+            } <#End ScriptBlock acceso tenant TKG#> } #End Opcion 5
         6 {
             Write-Host "------------------------------";
             Clear-Host
             $cabecera = "Introduce datos del usuario a buscar"
             $usuario = ventana          
-            $usuarios = Get-ADUser -Filter "name -like '*$usuario*'" -ErrorAction stop | select name, samaccountname, enabled
-            if ($usuarios.length.Equals(0)){
-            Write-Host "No hay usuarios en el Tenant1 con esos datos"
-            $User = 'tenant2\administrador'
-            $Pass = cat C:\directory\SecurePassword | ConvertTo-SecureString
-            $Credentials = New-object -TypeName System.Management.Automation.PSCredential -ArgumentList $User,$Pass
+            $usuariosTenant1 = Get-ADUser -Filter "name -like '*$usuario*'" -ErrorAction continue | select name, samaccountname, enabled
+            $UserTenant2 = 'tenant2\administrador'
+            $PassTenant2 = cat C:\directory\SecurePasswordTenant2.txt | ConvertTo-SecureString
+            $CredentialsTenant2 = New-object -TypeName System.Management.Automation.PSCredential -ArgumentList $UserTenant2,$PassTenant2
             Write-Host "Entramos en el  Tenant2 que es el servidor del segundo Tenant"
-            Invoke-Command -ComputerName ServerTenant2 -Credential $Credentials -ScriptBlock {
-            Write-Host " estos son los que encontramos en el Tenant2 "
+            $UsuariosTenant2 = Invoke-Command -ComputerName ServerTenant2 -CredentialTenant2 $Credentials -ScriptBlock {           
             Get-AdUser -Filter "name -like '*$using:usuario*'" -ErrorAction stop | select name, samaccountname, enabled
-             }
-             }
-             Else {
-             Write-Host "Estos son los usuarios que contienen los caracteres $usuario"
-             $usuarios
-                Write-Host 
-            }            
-            Write-Host "------------------------------";
-            pause;
-            Clear-Host 
-            break
-            }
+             } #End ScriptBlock consulta en servidor remoto 
+             if ($usuariosTenant1.length.Equals(0)){Write-Host "No hay usuarios en el Tenant1 con esos datos"} # End If sin usuarios Tenant1
+             Else {Write-Host "Estos son los usuarios del tenant1 que contienen los caracteres $usuario"
+             $usuariosTenant1 } #End Else los usuarios del Tenant1
+             if ($usuariosTenant2.length.Equals(0)){Write-Host "No hay usuarios en el Tenant2 con esos datos"} # End If sin usuarios Tenant2
+             Else { Write-Host " estos son los usuarios que encontramos en el Tenant2 con esos datos "
+             $usuariosTenant2 } # End Else los usuarios del Tenant2
+             Write-Host "------------------------------";
+             pause;
+             Clear-Host 
+             break
+            } #End opcion 6
         7 {"Exit"; break}
         default {Write-Host -ForegroundColor red -BackgroundColor white "Invalid option. Please select another option";pause}
         
-    }
+    } # End Switch
 $opcion = menuinicio
 $inp = $opcion.Split(".")[0] 
-}
+} # End While
