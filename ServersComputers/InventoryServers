@@ -1,0 +1,150 @@
+Function WMILookup 
+{
+$AllServers = @()
+$ServerObj  = @()
+foreach ($StrComputer in $ComputerDescription.Keys)
+{
+$GenItems1  = $null
+$SysItems1 = $null
+$ProcItems1 = $null
+$DiskItems = $null
+$NetItems = $null
+$Current += 1
+Write-Output "Working on $StrComputer"
+$GenItems1 = gwmi Win32_ComputerSystem -Comp $StrComputer
+$ServerObj = New-Object psObject
+$ServerObj |Add-Member -MemberType NoteProperty -Name "GUID" -Value $ComputerGUID[$strComputer] -Force
+if ($GenItems1 -eq $null)
+{
+$ServerObj | Add-Member -membertype noteproperty -name "Hostname" -Value  $StrComputer -Force
+if ($ComputerLastLogon[$StrComputer] -eq $null)
+{
+$ServerObj | Add-Member -membertype noteproperty -name "Manufacturer" -Value "No WMI Data" -Force
+}
+if ($ComputerLastLogon[$StrComputer] -ne $null)
+{
+$lastLogon = ""
+$lastLogon = $ComputerLastLogon[$StrComputer]
+$ServerObj | Add-Member -membertype noteproperty -name "Manufacturer" -Value "No WMI Data – Last logged in: $lastlogon" -Force
+}
+$ServerObj |Add-Member -MemberType NoteProperty -Name "Home OU" -Value $ComputerOU[$strComputer] -Force
+$ServerObj |Add-Member -MemberType NoteProperty -Name "Function" -Value $ComputerDescription[$strComputer] -Force
+$ServerObj |Add-Member -MemberType NoteProperty -Name "GUID" -Value $ComputerGUID[$strComputer] -Force
+$AllServers += $ServerObj
+}
+if ($GenItems1 -ne $null)
+{
+$GenItems2 = gwmi Win32_OperatingSystem -Comp $StrComputer
+$SysItems1 = gwmi Win32_BIOS -Comp $StrComputer
+$ProcItems1 = @(gwmi Win32_Processor -Comp $StrComputer)
+$DiskItems = @(gwmi Win32_LogicalDisk -Comp $StrComputer | Where-Object {$_.DriveType -eq 3})
+$NetItems = @(gwmi Win32_NetworkAdapterConfiguration -Comp $StrComputer | where{$_.IPEnabled -eq "True"} | select @{name=‘IP Address’;expression={$_.IPAddress}},MACAddress)
+foreach ($objItem in $GenItems1)
+{
+$ServerObj | Add-Member -membertype noteproperty -name "Hostname" -Value  $objItem.Name.Trim() -Force
+$ServerObj | Add-Member -membertype noteproperty -name "Manufacturer" -Value $objItem.Manufacturer.Trim() -Force
+$ServerObj | Add-Member -membertype noteproperty -name "Model" -Value $objItem.Model.Trim() -Force
+$Memory = $objItem.TotalPhysicalMemory /1024/1024/1024
+$Memory  = "{0:n0}" -f $Memory
+$Memory = $Memory +" (GB)"
+$ServerObj | Add-Member -MemberType NoteProperty -Name "RAM" -Value $Memory -Force
+$ServerObj | Add-Member -membertype noteproperty -name "CPU’s" -Value $objItem.NumberOfProcessors -Force
+}
+foreach ($objItem in $GenItems2)
+{
+$ServerObj | Add-Member -membertype noteproperty -name "OS" -Value $objItem.Caption -Force
+}
+foreach ($objItem in $SysItems1)
+{
+$ServerObj | Add-Member -membertype noteproperty -name "Serial Number" -Value $objItem.SerialNumber -Force
+}
+$ServerObj | Add-Member -MemberType NoteProperty -Name "City" -Value $ComputerLocation[$strComputer].Split(";")[3] -Force
+$ServerObj | Add-Member -MemberType NoteProperty -Name "Building" -Value $ComputerLocation[$strComputer].Split(";")[2] -Force
+$ServerObj | Add-Member -MemberType NoteProperty -Name "Room" -Value $ComputerLocation[$strComputer].Split(";")[1] -Force
+$ServerObj | Add-Member -MemberType NoteProperty -Name "Rack" -Value $ComputerLocation[$strComputer].Split(";")[0] -Force
+$ServerObj | Add-Member -membertype NoteProperty -Name "CPU Speed" -Value $ProcItems1[0].maxClockSpeed -Force
+$intRowDisk = 0
+[STRING]$diskSizeTotal = @()
+$ServerObj | Add-Member -membertype noteproperty -name "Disk Drives" -Value $DiskItems.Length -Force
+foreach ($objItem in $DiskItems)
+{
+$diskSize = $objItem.Size/1024/1024/1024
+$diskSize = "{0:n2}" -f $diskSize
+$intRowDisk = $intRowDisk + 1
+$diskSizeTotal += $objItem.DeviceID + " " + $diskSize + " (GB); "
+}
+$ServerObj | Add-Member -membertype noteproperty -name "Disk Space" -Value $diskSizeTotal.substring(0,$diskSizeTotal.LastIndexOf(";"))  -Force
+$intRowNet = 0
+$ServerObj | Add-Member -membertype noteproperty -name "NIC’s" -Value $NetItems.Length -Force
+[STRING]$MACAddresses = @()
+[STRING]$IpAddresses = @()
+foreach ($objItem in $NetItems)
+{
+if ($objItem.{IP Address}.Count -gt 1)
+{
+$TempIpAdderesses = [STRING]$objItem.{IP Address}
+$TempIpAdderesses  = $TempIpAdderesses.Trim().Replace(" ", " ; ")
+$IpAddresses += $TempIpAdderesses # +"; "
+}
+else
+{
+$IpAddresses += $objItem.{IP Address} +"; "
+}
+if ($objItem.{MacAddress}.Count -gt 1)
+{
+$TempMACAddresses = [STRING]$objItem.{MACAddress}
+$TempMACAddresses = $TempMACAddresses.Replace(" ", " ; ")
+$MACAddresses += $TempMACAddresses +"; "
+}
+else
+{
+$MACAddresses += $objItem.{MACAddress} +"; "
+}
+$intRowNet = $intRowNet + 1
+}
+$ServerObj | Add-Member -membertype noteproperty -name "IP Address" -Value $IpAddresses.substring(0,$ipaddresses.LastIndexOf(";")) -Force
+$ServerObj | Add-Member -membertype noteproperty -name "MAC Address" -Value $MACAddresses.substring(0,$MACAddresses.LastIndexOf(";")) -Force
+$ServerObj | Add-Member -MemberType NoteProperty -Name "Function" -Value $ComputerDescription[$strComputer] -Force
+$AllServers += $ServerObj
+}
+}
+$file =  ( get-date ).ToString(‘yyyy-MM-dd’) + "-ServerInventory.csv"
+$AllServers |Sort-Object "HostName" | Export-Csv "c:\scripts\blog\$file" -NoTypeInformation
+}
+Function ListADServers 
+{
+$ComputerDescription = @{}
+$ComputerOU = @{}
+$ComputerGUID = @{}
+$ComputerLastLogon = @{}
+$ComputerLocation = @{}
+$Results = @()
+$DomainName = ‘LDAP://OU=Computers,DC=Contoso,DC=com’
+$Root = New-Object DirectoryServices.DirectoryEntry $DomainName
+$objSearcher = New-Object DirectoryServices.DirectorySearcher
+$objSearcher.SearchRoot = $Root
+$objSearcher.SearchScope = "SubTree"
+$objSearcher.Filter =  "(&(objectCategory=computer)(OperatingSystem=Windows*Server*))"
+$colResults = $objSearcher.FindAll()
+foreach ($objResult in $colResults)
+{
+$objComputer = $objResult.Properties
+$computer = $objResult.GetDirectoryEntry()
+$ComputerDescription.Add([string]$computer.name, [string]$computer.description)
+$ComputerLocation.Add([string]$computer.name, [string]$computer.location)
+$ComputerGUID.Add([string]$computer.name, $computer.psbase.guid.ToString())
+if ($objComputer.lastlogon -ne $null)
+{
+[string]$lastLogonInterval = $objComputer.lastlogon
+}
+elseif ($objComputer.lastlogon -eq $null)
+{
+[string]$lastLogonInterval = $objComputer.lastlogontimestamp
+}
+$lastLogon = [System.DateTime]::FromFileTime($lastLogonInterval)
+$ComputerLastLogon.Add([string]$computer.name, $lastLogon.Date.ToShortDateString())
+}
+}
+$erroractionpreference = "SilentlyContinue"
+. ListADServers
+WMILookup
