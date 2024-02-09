@@ -60,13 +60,14 @@ $listBox.Location = New-Object System.Drawing.Point(10,80)
 $listBox.Size = New-Object System.Drawing.Size(250,150) 
 $listBox.Height = 100
 
-[void] $listBox.Items.Add("1. Quitar Grupo a usuario en Tenant1")
-[void] $listBox.Items.Add("2. Quitar Grupo a usuario en Tenant2")
-[void] $listBox.Items.Add("3. Borrar Equipo Tenant1")
-[void] $listBox.Items.Add("4. Buscar Grupo en Tenant1")
-[void] $listBox.Items.Add("5. Buscar Grupo en Tenant2")
-[void] $listBox.Items.Add("6. ")
-[void] $listBox.Items.Add("7. Exit")
+[void] $listBox.Items.Add("1. Quitar Grupo a usuario")
+[void] $listBox.Items.Add("2. Añadir Grupo a usuario")
+[void] $listBox.Items.Add("3. Borrar Equipo de Tenenat")
+[void] $listBox.Items.Add("4. Ver los grupos de un usuario")
+[void] $listBox.Items.Add("5. Buscar Grupo en los Tenant")
+[void] $listBox.Items.Add("6. Bucar Usuario en los Tenant")
+[void] $listBox.Items.Add("7. Bucar Usuario en los Tenant")
+[void] $listBox.Items.Add("8. Exit")
 
 $form.Controls.Add($listBox) 
 
@@ -81,7 +82,7 @@ if ($result -eq [System.Windows.Forms.DialogResult]::OK)
     }
 if ($result -eq [System.Windows.Forms.DialogResult]::Cancel)
 {
-    $x = "7"
+    $x = "8"
     $x
 }
 }
@@ -89,7 +90,7 @@ if ($result -eq [System.Windows.Forms.DialogResult]::Cancel)
 $fecha = Get-Date -Format dd/MM/yyyy
 $opcion = menuinicio
 $inp = $opcion.Split(".")[0] 
-while($inp -ne "7"){
+while($inp -ne "8"){
  
 switch($inp){
         1 {
@@ -98,9 +99,9 @@ switch($inp){
             #Borrar grupo de usuario
             $cabecera = "Introduce el Usuario"
             $nombreusuario = ventana
-            Try{
             Write-Host " Los grupos del usuario $nombreusuario son :" 
-            Get-ADUser -Identity $nombreusuario -Properties memberof | select -ExpandProperty memberof
+            Try{
+            Get-ADUser -Identity $nombreusuario -Properties memberof -ErrorAction | select -ExpandProperty memberof
             $cabecera = "Introduce el Grupo a borrar"
             $grupo = ventana
                         if ($grupo -eq ""){
@@ -110,14 +111,35 @@ switch($inp){
                                 break
                                 }
             Remove-ADGroupMember -Members $nombreusuario -Identity $grupo
+            Write-Host "------------------------------";
             Write-Host "Al usuario $nombreusuario se le ha borrado del grupo $grupo"
             Write-Host "------------------------------";
-            }
-            catch { Write-Host " El usuario $nombreusuario no está en el AD"}
+            } # End Try
+            catch { 
+                $User = 'tenant2\admin'
+                $Pass = Cat c:\directorio\ficheropassword.txt | ConverTo-SecureString
+                $Credentials = New-object -TypeName System.Management.Automation.PSCredential -ArgumentList $User,$Pass
+                Invoke-Command -ComputerName ServidorTeneant2 -Credential $Credentials -ScriptBlock {
+                $nombreusuario = $using:nombreusuario
+                Try{
+                    Get-ADUser -Identity $nombreusuario -properties memberof | select -ExpandProperty memberof -ErrorAction Stop 
+                    $grupo = Read-Host "Introduce el grupo a borrar"
+                        if ($grupo -eq ""){
+                                Write-Host " No se ha introducido grupo "
+                                Pause;
+                                Clear-Host
+                                break } # End If grupo vacio
+                    Remove-ADGroupMember -Members $nombreusuario -Identity $grupo
+                    Write-Host "Al usuario $nombreusuario se le ha borrado del grupo $grupo"
+                    Write-Host "------------------------------";
+                    } # End Try Segundo tenant
+                    catch {Write-Host "La cuenta $usuario introducida es incorrecta" -ForegroundColor Red -BackgroundColor Gray} # End Catch
+                } #End ScriptBlock
+                } # End Catch
             pause;
             Clear-Host
             break
-        }
+        } # End Opción 1 Quitar grupo a un usuario
         2 {
             Clear-Host
             Write-Host "------------------------------";
@@ -223,7 +245,26 @@ switch($inp){
              Clear-Host 
              break
             } #End opcion 6
-        7 {"Exit"; break}
+       7 {
+            Write-Host "------------------------------";
+            Clear-Host
+            $cabecera = "Introduce el usuario o el equipo a mover"
+            $usuario = ventana
+            $objeto = "Introduce la OU principal"
+            $OUprincipal = ventana
+            $cabecera = "Introduce la Ou Secundaria"
+            $OUSecundaria = ventana
+            $path = $OUprincipal + "," + $OUSecundaria + "," + (get-addomain).DistinguishedName
+            $mover = (Get-ADComputer $objeto).distinguishedname
+            Move-ADObject -Identity $mover -TargetPath $path
+            Write-Host "------------------------------";
+            Write-Host "Hemos movido el Usuario/equipo $objeto a la OU $path"
+            Write-Host "------------------------------";
+            pause;
+            Clear-Host 
+            break
+            } # End opción 7 mover objeto en el AD
+        8 {"Exit"; break}
         default {Write-Host -ForegroundColor red -BackgroundColor white "Invalid option. Please select another option";pause}
         
     } # End Switch
