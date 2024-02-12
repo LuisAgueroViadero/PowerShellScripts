@@ -1,0 +1,2 @@
+# Como ejecutar un programa de PowerShell en un equipo con restricciones, desde la linea de comandos de MSDos ejecutamos la siguiente linea:
+PowerShell -NoProfile -NonInteractive -ExecutionPolicy Unrestricted -Command "&c:\directorio\nombreFichero.ps1"
