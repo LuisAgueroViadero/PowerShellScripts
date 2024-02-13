@@ -17,9 +17,9 @@ $results =@()
         $ip = "$rango$_"
         Try { $equipo = [System.Net.Dns]::GetHostEntry("$ip").hostname}
         catch {$equipo = "No Host"}
-        Try {$serialnumber = Get-WmiObject win32_bios -ComputerName $equipo|select serialnumber -Unique}
+        Try {$serialnumber = Get-WmiObject win32_bios -ComputerName $equipo -ErrorAction |select serialnumber -Unique}
         catch {$serialnumber = "No tiene S/N"}
-        Try {$SO = Get-WmiObject win32_operatingsystem -ComputerName $equipo -Property * |select caption  }
+        Try {$SO = Get-WmiObject win32_operatingsystem -ComputerName $equipo -Property * -ErrorAction |select caption  }
         catch { $so = "Sistema Operativo No compatible"}
         $object = New-Object psobject
         $object |Add-Member -MemberType NoteProperty -Name "hostname" -Value $equipo 
