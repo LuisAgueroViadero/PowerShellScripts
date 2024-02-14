@@ -1,0 +1,21 @@
+# comprobamos la versión ( para instalar el paquete hace falta PowerShell 5.1 y .NET Framework 4.7.2 o posteriores)
+$PSVersionTable.PSVersion
+
+# Instalación del modulo solo para el usuario actual
+if (Get-Module -Name AzureRM -ListAvailable) {
+    Write-Warning -Message ('Az module not installed. Having both the AzureRM and ' +
+      'Az modules installed at the same time is not supported.')
+} else {
+    Install-Module -Name Az -AllowClobber -Scope CurrentUser # Para todos los usuarios cambiar CurrentUser or AllUsers
+}
+
+# Iniciar sesión
+Connect-AZAccount
+
+# Actualización del modulo de Azure PowerShell
+if (Get-Module -Name AzureRM -ListAvailable) {
+    Write-Warning -Message ('Az module not installed. Having both the AzureRM and ' +
+      'Az modules installed at the same time is not supported.')
+} else {
+    Install-Module -Name Az -AllowClobber -Force
+}
