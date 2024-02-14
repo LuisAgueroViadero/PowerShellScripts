@@ -1,0 +1,8 @@
+#proporciona los permisos de lectura/escritura necesarios para agregar un nuevo usuario.
+Install-Module Microsoft.Graph -Scope CurrentUser
+Import-Module Microsoft.Graph.Identity.DirectoryManagement
+Connect-MgGraph -Scopes 'User.ReadWrite.All'
+
+#El primer comando asigna la contraseña del usuario a una variable. El comando New-MgUser luego hace referencia a la variable
+$PasswordProfile = @{ Password = 'user password' }
+New-MgUser -UserPrincipalName username@domainname –DisplayName 'Firstname Lastname' –GivenName 'Firstname' –Surname 'Lastname' -PasswordProfile $PasswordProfile -AccountEnabled -MailNickName 'email alias'
