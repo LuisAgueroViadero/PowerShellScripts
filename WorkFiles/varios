@@ -1,0 +1,360 @@
+#Nos muestra Todo lo del registro de SofwareLicensingService
+Get-WmiObject -Query 'select *from SoftwareLicensingService'
+
+#Nos muestra la contraseña de Windows (la clave del producto).
+(Get-WmiObject -Query 'select *from SoftwareLicensingService').OA3xOriginalProductKey 
+Set-Location HKLM:
+Set-Location .\SOFTWARE\Microsoft\Windows nt\currentVersion\softwareprotectionPlatform
+        # en la clave BackupProductKeyDefault esta la licencia de windows
+
+#Nos muestra en una ventana si esta activado en una ventan emergente (CMD)
+slmgr -dli 
+
+#Nos muestra el estado de la licencia
+Get-CimInstance -ComputerName .\Servidor -ClassName SoftwareLicensingProduct | Where-Object PartialProductKey | Select-Object Name, LicenseStatus |Format-List
+
+# Testear una ruta 
+Test-Path \\Servidor\f\hv02_hv03\
+
+#Pruebas varias
+Get-WmiObject -class    win32_volume
+Get-CimInstance -ClassName Win32_BIOS
+(Get-WmiObject -Class win32_operatingsystem -ComputerName Servidor).caption
+(Get-WmiObject -Class win32_operatingsystem -ComputerName Servidor).version 
+Get-WmiObject -Class win32_operatingsystem -ComputerName Servidor | gm
+Get-WmiObject -Class win32_operatingsystem -ComputerName Servidor -Property *
+Get-CimInstance -ClassName Win32_BIOS -ComputerName Servidor
+
+#para saber las propiedades de un usuario 
+$usuario = Get-ADUser -Identity usertest -propierties *
+$usuario | Get-Member
+#Despues de esto podemos listar los objetos que queramos del usuario
+$usuario | Select-Object -Property Name, LastLogonDate, LastBadPasswordAtdirectoriot
+
+#Hacer un filtrado, busqueda
+Get-ADGroup -Filter "name -like '*repo*'"|Out-GridView
+
+# borrar un equipo
+remove-computer -computername cl39020054
+
+#comando para Azure cambiar el usuario principal
+Connect-MsolService
+Set-MsolUserPrincipalName -UserPrincipalName chudzinski.michal@Tenant.com.pl -NewUserPrincipalName michal.chudzinski@Tenant.com.pl
+
+#Saber la memoria del equipo
+Get-WmiObject win32_physicalmemory | Format-Table Manufacturer,MemoryType,Banklabel,Configuredclockspeed,Devicelocator,Capacity,Serialnumber -autosize
+
+
+#Apagar o reiniciar el equipo (en forma remota solo tenemos que poner el nombre del equiposto)
+Stop-Computer -ComputerName localhost
+Restart-Computer -ComputerName localhost
+# Apaga, enciende o reinicia VM
+start-VM -VMName Servidor
+stop-VM -VMName Servidor
+Restart-VM -VMName Servidor
+
+
+#Saber si tenemos una versión de Net FrameWork 6.4 o superior instalada
+(Get-Idirectorioroperty "HKLM:\SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full").Release -ge 394802
+
+# sacar la información de un equipo en remoto
+Invoke-Command -ComputerName 'Servidor' -ScriptBlock { Get-ComputerInfo | more }
+Get-ComputerInfo -Property osl* # solo el arranque
+
+#Buscar dentro de las GPO
+  Get-GPO -All | %{ $_ | Get-GPOReport -ReportType Html |Select-String "nombre de la GPO"}
+
+# Entrar en una máquina remota con PowerShell
+Enter-PSSession Servidor
+# Saber si se está ejecutantdo el WInRM de gestión remota
+Get-WmiObject -ComputerName Server-Class win32_service -filter "name='winrm'"
+Get-Service WinRM
+Test-WSMan
+        # En caso de que no se pueda comprobar 
+        Enable-PSRemoting
+        Get-WSManCredSSP
+        help about_remote_troubleshooting
+        Winrm set winrm/config/listener?Address=*+Transport=HTTP@{Port="1234"} #cambiar el puerto
+
+# Sacar los usuarios por OU
+Get-ADUser -Filter "Name -like '*'" -Properties Enabled -SearchBase "OU=OU_THL,DC=Tenant2,DC=com" | Where-Object $._Propierties Enabled | Select-Object name,lastlogondate | Export-Csv C:\directorio\userTHL.csv
+
+# Sacar grupos de una OU
+Get-ADGroup -Filter "Name -like '*'" -SearchBase "OU=OU_SAN,DC=Tenant,DC=industrial" |Select-Object name |Out-GridView 
+
+#Preguntar si un comando se ha ejecutado correctamente.
+$?
+
+# probar su filtro WMI
+gwmi -Query 'select * from Win32_OperatingSystem where Version like "10.%" and ProductType="1"'
+
+#Saber si una máquina es virtual o física
+gwmi -q "select * from win32_computersystem"
+
+#saber ususarios conectados en un servidor y echarles
+query session /server:Servidor
+logoff 2 /server:Servidor #el 2 corresponde al id que nos muestra cuando hacemos la consulta con el query
+
+# Instalar el modulo de Azure AD
+Install-Module -Name MSOnline
+Connect-MsolService
+
+$Name="UPN de tu cuenta de azure"
+$credential = Get-Credential -UserName $Name -Message "Escribe el password."
+#Azure Active Directory
+Connect-MsolService -Credential $credential
+
+#Instalar Azure PowerShell
+$PSVersionTable.PSVersion #Saber la versión de PowerShell
+Install-Module -Name AzureRM -AllowClobber
+# Connect to Azure with an interactive dialog for sign-in
+Connect-AzureRmAccount
+#Si esta deshabilitado la carga automática de módulos
+Import-Module AzureRM
+#Actualizar Azure
+Update-Module -Name AzureRM
+# Install version 2.3.0 of Azure PowerShell
+Install-Module -Name AzureRM -RequiredVersion 2.3.0
+# Load version 2.3.0 of Azure PowerShell
+Import-Module -Name AzureRM -RequiredVersion 2.3.0
+# para empezar a trabajar en Azure
+Add-AzureAccount
+
+#Actualizar versión de una m´quina virtual
+Update-VMVersion
+
+#sincronizar Azure
+Import-Module ADsync
+start-ADSyncSyncCycle -PolicyType deshabilitado
+
+#Comando para ver si esta instalado el antivirus Defencer 
+Get-MpComputerStatus
+
+#Ejecutar PowerSell como administrador
+start-process powershell -verb runas
+start-process powershell_ise -verb runas
+
+
+# Enumera las eventos relacionados con el cambio de una contraseña
+Get-WinEvent -FilterHashtable @{LogName="Security"; id=4724} | Format-Table -AutoSize
+
+Get-WinEvent -FilterHashtable @{LogName="Security"; id=4724} | Format-Table -Wrap -AutoSize
+Get-WinEvent -FilterHashtable @{LogName="Security"; id=4724 } | Format-List *
+
+# Quien ha cambiado la contraseña en los ultimos 30 días
+$MyStartDate = (Get-Date -Hour 00 -Minute 0 -Second 0).Adddays(-30).Date
+Get-WinEvent -FilterHashtable @{LogName="Security"; id=4724} | Where-Object -Property Timecreated -ge $MyStartDate | Format-Table -AutoSize
+
+#Enumerar eventos relacionados con la exclusión de una cuenta de usuario.
+Get-WinEvent -FilterHashtable @{LogName="Security"; id=4726} | Format-Table -AutoSize
+# Mostrar el contenido de los eventos relacionados con la exclusión de una cuenta de usuario.
+Get-WinEvent -FilterHashtable @{LogName="Security"; id=4726} | Format-Table -Wrap -AutoSize
+Get-WinEvent -FilterHashtable @{LogName="Security"; id=4726 } | Format-List *
+
+# Enumere los eventos relacionados con la creación de una cuenta de usuario.
+Get-WinEvent -FilterHashtable @{LogName="Security"; id=4720} | Format-Table -AutoSize
+
+# Cambiar los atributos de un usuario
+Set-ADUser M.Becker -add @{ProxyAddresses="smtp:M.Becker@woshub.com, ,SMTP:moritz.becker@woshub.com " -split ","}
+
+# Saber la IP de las máquinas virtuales 
+Get-VM | Select -ExpandProperty NetworkAdapters
+
+# Borrar archivos con una antiguüedad
+Get-ChildItem -Path "C:\directorio" -Recurse | Where-Object CreationTime -LT (Get-Date).AddDays(-10) | Remove-Item
+
+# Borrar archivos entro dos fechas
+Get-ChildItem c:\directorio\*.* | Where-Object {$_.lastwritetime -gt '05/21/2019' -AND $_.lastwritetime -lt '05/22/2019'} | Remove-Item
+        #La fecha en formato americano y recuerda que juega también la hora por lo que si quieres listar un día completo el rango debe ser -gt fecha (grather than) y -lt fecha + 1día (less than)
+
+# Para ver todos las propeidades de un comando  (sobre los que podemos consultar) poenmos al final del comando  |GM
+Get-ADUser -Identity usertest -Properties * |gm
+
+# Mostrar los servicios que se están ejecutando
+Get-Service -Name * |Where-Object Status -eq 'Running'
+
+# Metemos las máquinas virtuales del cluster en una variable y consultamos las de una máquina en concreto.
+$VMs = Get-ClusterGroup | Where-Object { $_.GroupType –eq "VirtualMachine" -and $_.State -eq "Online"}
+$VMs |Where-Object {($_.ownernode -eq "Servidor")}
+
+# Muestra todas las opciones del comando que estas usando pulsando la tecla Tab
+Set-PSReadlineKeyHandler -key Tab -Function MenuComplete
+
+# Saber la última vez que arranco la máquina (ultimo inicio del servidor) **Importante detras de ConvertToDateTime no puede haber espacios **
+Get-CimInstance -ClassName win32_operatingsystem | select csname, lastbootuptime
+Get-WmiObject win32_operatingsystem -ComputerName Server | select @{LABEL='LastBootUpTime';EXPRESSION={$_.ConverttoDateTime($_.lastbootuptime)}}
+
+# Sacar la fecha de la última conexión de todos los usuarios enabled
+get-aduser -Filter "name -like '*'" -Properties * |Where-Object {$_.enabled -EQ $true} |Select-Object samaccountname, @{name='LastLogon';Expression={[DateTime]::FromFileTime($_.LastLogon)}}
+Get-ADUser -Identity usertest -Properties * |Where-Object {$_.enabled -eq $true} | Select-Object name, samaccountname, {[datetime]::FromFileTime($_.lastlogon)}
+
+# Ultima feha que se cambio la password
+Get-ADUser -Identity usertest -Properties * |Where-Object {$_.enabled -eq $true} | Select-Object name, samaccountname, {[datetime]::fromfiletime($_.pwdlastset)}
+
+# Cambiar contraseña (password) desde linea de comandos
+Set-ADAccountPassword usertest -Reset -NewPassword (ConvertTo-SecureString -AsPlainText “myP@ssw0rd112” -Force -Verbose) –PassThru
+Unlock-ADAccount –Identity usertest #Para desbloquear la cuenta
+Set-ADUser -Identity jliebert -ChangePasswordAtLogon $true #Que cambie la contraseña en el próximo inicio de sesión
+Get-ADUser jliebert -Properties * | select name, pass* # Mostrar el último cambio de contraseña
+
+# Cambio de contraseñas masivos
+  get-aduser -filter "department -eq 'Sales Dept' -AND enabled -eq 'True'" | Set-ADAccountPassword -NewPassword $NewPasswd -Reset -PassThru | Set-ADuser -ChangePasswordAtLogon $True
+
+        # Teniendo un archivo CSV ejecuar el Script siguiente:
+        #sAMAccountName;NewPassword
+        #acidicjustine;Pa$$w0r1
+        #josephomoore;N$isory01
+        #simonecole;k@32d3!2
+Import-Csv users.csv -Delimiter ";" | Foreach {
+$NewPass = ConvertTo-SecureString -AsPlainText $_.NewPassword -Force
+Set-ADAccountPassword -Identity $_.sAMAccountName -NewPassword $NewPass -Reset -PassThru | Set-ADUser -ChangePasswordAtLogon $false
+}
+
+      # Todos los usuarios de una OU
+       get-aduser -filter * "-searchbase 'ou=users,ou=OU_TMX,dc=Tenant2,dc=com"|Select-Object name,samaccountname
+       # ususarios que pertenenecen a un grupo de una OU determinada
+       Get-ADGroupMember -Identity Gr_GLallwvdrdp |Where-Object {$_.distinguishedname -like '*OU_TMX*'}
+
+
+# saber la OU en la que esta un usuario
+       dsquery user -name Luis*
+        dsquery user -name Luis* | dsget user -samid -upn
+
+# Cambiar propiedades de usuario (tengo las propiedades en c:\directorio\PropertiesPowerShell)
+Set-ADuser usertest –Description “IT”
+        # Cambiarlas propiedades de forma masiva ( en este caso a los usuarios de mi OU les obliga a cambiar la contraseña cuando entren)
+        Get-ADUser -Filter * -SearchBase "OU=EntornoAVANZADO,OU=9060-Informatica,OU=OU_SAN,DC=Tenant,DC=industrila" | Set-ADUser -ChangePasswordAtLogon $true
+        # Cambiarlas propiedades desde un csv
+        Import-Csv "C\directorio\:scriptsadupdate_ad_users.csv" | foreach {Set-ADUser -Identity $_.SamAccountName –Title $_.Title -MobilePhone $_.MobilePhone}
+
+# borra las porpiedades de usuario  ( en este caso descripción )
+Set-ADUser usertest -Clear "Description"
+
+# Saber las IPs de un dominio
+Resolve-DnsName Tenant.industrial
+Resolve-DnsName -Name Tenant.industrial -Type NS |select name,ip4address |Out-GridView 
+
+# Saber el nombre del equipo (hostname) dede una IP
+[system.net.dns]::gethostentry('192.168.80.100').hostname
+Resolve-DnsName -Name 192.19.20.56 -Type PTR
+Resolve-DnsName -Name 192.19.20.56 -Type HINFO #nos da información de desde donde se conecta
+
+# Buscar algun servicio por datos
+Get-Service -ComputerName Server |Where-Object {$_.Name -like '*vss*'}|select ServiceName,DisplayName,Name,Status |Out-GridView
+
+# Listar usuarios que cuelgan de una OU Unidad Organizativa
+$Ou='ou=admin,dc=Tenant,dc=industrial'
+Get-ADUser -Filter * -SearchBase $ou
+
+
+#Auditoria Sacar todos los usuarios y los Admins
+Get-ADUser -filter * -Properties * |select samaccountname,userprincipalname,@{label="inicio";expression={[datetime]::FromFileTime($_.lastlogontimestamp)}},enabled,modifyTimeStamp|Export-Csv \\equipo\directorio\ListOfUserActiveDirectory.csv -Delimiter ";"
+$ou='ou=tier 0,ou=admin,dc=Tenant,dc=industrial'
+Get-ADUser -Filter * -SearchBase $ou|Where-Object {$_.enabled -eq $true}|select samaccountname, name, distinguishedname|Export-Csv \\equipo\directorio\Administrator0.csv -Delimiter ";"
+$ou='ou=tier 1,ou=admin,dc=Tenant,dc=industrial'
+Get-ADUser -Filter * -SearchBase $ou|Where-Object {$_.enabled -eq $true}|select samaccountname, name, distinguishedname|Export-Csv \\equipo\directorio\Administrator1.csv -Delimiter ";"
+
+
+# Agregar un usuario a un grupo 
+Add-ADGroupMember -Identity gr_izaroalbares_zgz -Members usertest
+        # Ver los uusarios de un grupo (el nombre de la cuenta de usuario)
+        (Get-ADGroupMember -Identity Gr_izaroalbaranes_zgz).samaccountname
+
+        #Saber los programas instalados en un equipo
+        Get-WmiObject -Class Win32_Product | Select-Object -Property Name > c:\directorio\InstalledSoftwareList.txt
+
+# Saber las últimas 10 actualizaciones
+Get-HotFix |select -First 10
+
+# Sacar los ultimos 10 errores de aplicaciones en Eventos de Windows y pasarlos a archivo HTML
+Get-WinEvent -ComputerName $s -LogName Application -Credential $Credentials|Where-Object {$s._leveldisplayname -eq "Error"} |select -First 10 |ConvertTo-Html -As Table -Title "Event Error" >> $path 
+
+# Limpiar variables
+Clear-Variable s #ponemos el nombre de la variable
+
+#Saber procesos activos Eventos y actualizaciones con funciones
+Function ProcesosActivos{
+        param ( $servidor)
+        Get-Service -ComputerName $servidor |Where-Object {$_.Status -eq "Running"} |Out-GridView
+        }
+Function SvrEventLog
+        {
+        param ( $servidor)
+        Get-WinEvent -ComputerName $servidor -LogName Application -Credential $Credentials|Where-Object {$_.leveldisplayname -eq "Error"} |select TimeCreated,Id,Message -First 5|Out-GridView
+        
+        }
+        
+Function SvrHotfix
+        {
+        param ( $servidor)
+        Get-HotFix -ComputerName $servidor -Credential $Credentials |select Description, HotFixID, InstalledOn -First 5 |Out-GridView
+        }
+# Mostrar las funciones
+Get-ChildItem -Path function:\svr*
+
+# Para borrar una función ejecutar el comando o salir de PowerShell y volver a abrirlo
+Get-ChildItem -Path Function:\Get-*Version | Remove-Item
+Remove-Module -Name <nombre del modulo> #Si la función está dentro de un modulo.
+
+# Bloquear / activar ejecución de scripts en PowerShell
+set-executionpolicy  restricted
+Set-ExecutionPolicy  Unrestricted
+        
+# La variable contiene desde donde ejecutamos el script.
+$PSScriptRoot  
+
+# Actualizar antivirus y hacer escaneado rapido
+$antivirusupdate = get-mpcomputerstatus
+if ($antivirusupdate.AntivirusSignatureLastUpdated -lt (get-date).AddDays(-5)){update-mpsignature}
+if ($antivirusupdate.LastQuickScanSource -lt (get-date).AddDays(-5)){Start-MpScan -ScanType QuickScan}
+
+# Sacar el sistema operativo, la versión el modelo las actualizaciones, etc.
+systeminfo /fo csv | ConvertFrom-Csv | select OS*, System*, Hotfix* | Format-List
+Get-WmiObject win32_operatingsystem -Property *| select caption
+
+# Ejecutar un scipt en segundo plano como una tarea
+Start-Job -FilePath C:\directorio\TareasDiarias_E01.ps1
+
+# Crear un archivo con lo que hemos ejecutado
+start-transcript -path \\equipo\directorio\sizeHD_restart_event\comandos(fecha).txt
+
+# Listar Propiedades Class Win32
+(Get-WmiObject -List).name | Select-String Win32 | %{
+        $_
+        pause
+        Get-WmiObject -Class $_
+        pause
+        }
+# Servidores de un dominio
+get-adcomputer -filter * -SearchBase "ou=domain controllers,dc=Tenant,dc=industrial"|select name
+
+#borrado de equiops
+$fichero = "c:\directorio\borradoEquipos.txt"
+$borrado = Get-Content $fichero
+foreach ($b in $borrado){Get-ADComputer $b| Remove-ADobject -Recursive -Confirm:$false} #borra los equipos y los objetos que cuelgan de el
+
+
+#Borrar un usuario de un grupo
+Remove-remADGroupMember -Members mschubert -Identity Gr_powerbi_pro
+
+#Nos muestra todos los usuarios de un grupo
+Get-remADGroupMember -Identity gr_powerbi_pro -Recursive |select name |Out-GridView
+
+#Mover usuario de OU
+                #Metodo 1
+
+        Get-ADUser -LDAPFilter "(samaccountname=$SAMAccountName)" | Move-ADObject -TargetPath "OU=UnidadDestino,DC=Andel,DC=Local"
+                #Metodo 2
+
+        Move-ADObject -Identity "OU=UnidadPSOrigen,DC=Andel,DC=Local" -TargetPath "OU=UnidadDestino,DC=Andel,DC=Local"
+                #Metodo 3
+                
+        $SAMAccountName = "usuario1"
+        $mover = (Get-ADUser -LDAPFilter "(samaccountname=$SAMAccountName)").DistinguishedName
+        Move-ADObject -Identity $mover -TargetPath "OU=UnidadDestino,DC=Andel,DC=Local"
+                #probado por mi
+                
+        $path = "ou=estaciones" + "," + "Ou=ou_Tenantzgz" + "," + (get-addomain).DistinguishedName
+        $ordenador = "equipo"
+        $mover = (Get-ADComputer $ordenador).distinguishedname
+        Move-ADObject -Identity $mover -TargetPath $path
