@@ -1,8 +1,13 @@
-#proporciona los permisos de lectura/escritura necesarios para agregar un nuevo usuario.
+# Proporciona los permisos de lectura/escritura necesarios para agregar un nuevo usuario.
 Install-Module Microsoft.Graph -Scope CurrentUser
 Import-Module Microsoft.Graph.Identity.DirectoryManagement
 Connect-MgGraph -Scopes 'User.ReadWrite.All'
 
-#El primer comando asigna la contraseña del usuario a una variable. El comando New-MgUser luego hace referencia a la variable
+# El primer comando asigna la contraseña del usuario a una variable. El comando New-MgUser luego hace referencia a la variable
 $PasswordProfile = @{ Password = 'user password' }
 New-MgUser -UserPrincipalName username@domainname –DisplayName 'Firstname Lastname' –GivenName 'Firstname' –Surname 'Lastname' -PasswordProfile $PasswordProfile -AccountEnabled -MailNickName 'email alias'
+
+# Agregaru usuarios de forma masiva
+Import-Csv -Path <Input CSV File Path and Name> | foreach {New-MgUser -DisplayName $_.DisplayName -GivenName $_.FirstName -Surname $_.LastName -UserPrincipalName $_.UserPrincipalName -UsageLocation $_.UsageLocation -LicenseAssignmentStates $_.AccountSkuId -PasswordProfile $_.Password} | Export-Csv -Path <Output CSV File Path and Name>
+# Ejemplo1
+Import-Csv -Path "C:\My Documents\NewAccounts.csv" | foreach {New-MgUser -DisplayName $_.DisplayName -GivenName $_.FirstName -Surname $_.LastName -UserPrincipalName $_.UserPrincipalName -UsageLocation $_.UsageLocation -LicenseAssignmentStates $_.AccountSkuId -PasswordProfile $_.Password} | Export-Csv -Path "C:\My Documents\NewAccountResults.csv"
