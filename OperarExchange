@@ -1,0 +1,16 @@
+# Crear contacto de correo
+New-MailContact -Name "Debra Garcia" -ExternalEmailAddress dgarcia@tailspintoys.com -Alias dgarcia
+
+# Este ejemplo configura las propiedades Título, Departamento, Empresa y Gerente para el contacto de correo Allan Deyoung.
+Set-Contact "Allan Deyoung" -Title Consultant -Department "Public Relations" -Company Fabrikam -Manager "Alex Wilber"
+
+# Este ejemplo establece la propiedad CustomAttribute1 en un valor de PartTime para todos los contactos de correo y los oculta de la libreta de direcciones de la organización.
+$Contacts = Get-MailContact -Resultsize unlimited
+$Contacts | foreach {Set-MailContact -Identity $_ -CustomAttribute1 PartTime -HiddenFromAddressListsEnabled $true}
+
+# Este ejemplo establece la propiedad CustomAttribute15 en un valor de TemporalEmployee para todos los contactos de correo en el departamento de Relaciones Públicas.
+$PR = Get-Contact -ResultSize unlimited -Filter "Department -eq 'Public Relations'"
+$PR | foreach {Set-MailContact -Identity $_ -CustomAttribute15 TemporaryEmployee}
+
+# Eliminar un contacto en Exchange Online
+Remove-MailContact -Identity <MailUserIdentity>
