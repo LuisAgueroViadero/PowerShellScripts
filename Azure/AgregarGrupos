@@ -1,1 +1,5 @@
+# Agregar un grupo de Identidad
 New-AzureADGroup -Description "Marketing" -DisplayName "Marketing" -MailEnabled $false -SecurityEnabled $true -MailNickName "Marketing"
+
+#Agregar un grupo de distribución M365
+New-MgGroup -DisplayName 'Test Group' -MailEnabled:$False -MailNickName 'testgroup' -SecurityEnabled
