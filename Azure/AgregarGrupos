@@ -3,3 +3,6 @@ New-AzureADGroup -Description "Marketing" -DisplayName "Marketing" -MailEnabled 
 
 #Agregar un grupo de distribución M365
 New-MgGroup -DisplayName 'Test Group' -MailEnabled:$False -MailNickName 'testgroup' -SecurityEnabled
+#Para agregar grupos anidadados seleccionar el grupo apropiado en lugar de un usuario.
+
+
