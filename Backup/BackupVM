@@ -47,7 +47,7 @@ $VMs = Get-VM -ComputerName $Hostname | Where-Object {$_.State -eq "Running"}
 {
     $name = $vm | select -ExpandProperty name
     Try {
-        Export-VM $VM -Path $BackupPath -ErrorAction Stop
+        Export-VM $VM -Path $BackupPath -ErrorAction Stop -Passthru | Out-File -FilePath $Logfile -Append #Passthru nos muestra el resultado de la operación en pantalla
         $Result = "Success"
         Write-EventLog -LogName Application -Source "Backup HyperV" -EntryType Information -EventId 1 `
             -Message "Hyper-V VMs Export $Result. Exported VMs: $ExportedVMs "
@@ -60,7 +60,7 @@ $VMs = Get-VM -ComputerName $Hostname | Where-Object {$_.State -eq "Running"}
     "Hyper-V VMs Export $Result. Exported VMs: $ExportedVMs. We procced to second copy from SanpShot" 
     "The backup from the virtual machines $VM.name is Failure, send a SnapShot Copy"|Out-File -FilePath $Logfile -Append
         checkpoint-vm -ComputerName $Hostname -Name $vm.Name -SnapshotName backup_error
-        Export-VMSnapshot -Name backup_error -VMName $vm.name -computername $hostname -Path $backuppath -ErrorVariable +err -ErrorAction Stop
+        Export-VMSnapshot -Name backup_error -VMName $vm.name -computername $hostname -Path $backuppath -ErrorVariable +err -ErrorAction Stop -Passthru | Out-File -FilePath $Logfile -Append
         Remove-VMSnapshot -Name backup_error -VMName $vm.name -computername $hostname
         $Result = "Success"
         Write-EventLog -LogName Application -Source "Backup HyperV" -EntryType Information -EventId 1 `
