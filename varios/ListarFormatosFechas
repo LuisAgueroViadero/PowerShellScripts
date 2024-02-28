@@ -1,0 +1,16 @@
+To get all date formats as per the local machine settings, use the following script:
+
+
+$DateTimeFormats = (Get-Date).GetDateTimeFormats()
+$Formats = @()
+$i=0
+$DateTimeFormats | ForEach-Object {
+    $Formats+= [PSCustomObject]@{
+        'IndexNumber' = $i
+        'DateTime Format' = $DTFormats[$i]
+    }
+    $i++
+}
+#Get All formats in Grid View
+$Formats | Out-GridView
+
