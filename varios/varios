@@ -364,5 +364,11 @@ Get-Command -Module <nombre del modulo>
 
 # Sacar las fechas de las últmas ejecuciones del antivirus
 Get-MpComputerStatus |fl antivirusSignatureVersion,AntivirusSignatureLastUpdated,FullScanEndTime,QuickScanEndTime
+
+#Saber la memoria libre de un equipo
+Get-CIMInstance Win32_OperatingSystem | Select FreePhysicalMemory,TotalVisibleMemory
+
+
+
         #ordenando la fecha formato español
         Get-MpComputerStatus |select antivirusSignatureVersion,@{label='Last Update';expression={($_.AntivirusSignatureLastUpdated).ToString('dd/MM/yyyy HH:mm:ss')}},@{label='Last FullScan';expression={($_.FullScanEndTime).ToString('dd/MM/yyyy HH:mm:ss')}},@{label='QuickScan';expression={($_.QuickScanEndTime).ToString('dd/MM/yyyy HH:mm:ss')}}|fl
