@@ -22,23 +22,27 @@ Variable donde almacenamos el fichero que creamos para hacer guardar los eventos
 Variable donde almacenamos las máquinas virtuales que se están ejecutando
 . EXAMPLE
 #>
-$Hostname = hostname
-$directorio = "\\server1\directory\Backup"
-$Date = Get-Date -Format dd-MMMM-yyyy_HH-mm
-$BackupPath = New-Item "\\server1\directory\Backup\HyperV_Export_$Date" -ItemType directory -Force
-$Logfile= New-Item "\\server1\directory\Backup\logs\Backup HyperV_$date.txt" -ItemType File -Force
-$harddisk = Get-WmiObject -Class win32_logicaldisk |  Where-Object {$_.DeviceID -eq "D:"} |select {$_.freespace/1gb}
-if (($harddisk.'$_.freespace/1gb' )-lt 2500 ) {
-$copias = Get-ChildItem -Path $directorio -Directory
-foreach ($copia in $copias){
+$Hostname = hostname # Name of the host when are the VM
+$directorio = "\\server1\directory\Backup" # Path when are the old backups
+$Date = Get-Date -Format dd-MMMM-yyyy_HH-mm # Date to use in process
+$BackupPath = New-Item "\\server1\directory\Backup\HyperV_Export_$Date" -ItemType directory -Force # Path when we save the new backup.
+$Logfile= New-Item "\\server1\directory\Backup\logs\Backup HyperV_$date.txt" -ItemType File -Force # Path when we save the logs.
+
+$harddisk = Get-WmiObject -Class win32_logicaldisk |  Where-Object {$_.DeviceID -eq "D:"} |select {$_.freespace/1gb} # Free space in hard disk
+$deleteddays = -45 # days we keep hard drive backups as long as we have free hard disk space
+
+While (($harddisk.'$_.freespace/1gb' )-lt 2500 ) { # While the hard disk had not free space
+$copias = Get-ChildItem -Path $directorio -Directory # we read the backup directory and save the directory names
+foreach ($copia in $copias){ # we go through each directory and if it is older than the date we delete it
     $borrar = $copia.LastWriteTime #tambien podemos usar CreationTime por fecha de creación
-    if ($borrar -lt (Get-Date).AddDays((-30))){
+    if ($borrar -lt (Get-Date).AddDays(($deleteddays))){
     Remove-Item $copia.PSPath -Recurse
     "El directorio $copia.name ha sido borrado"|Out-File $logfile -Append
-    
-    }
+    } #
     } 
-    }
+$harddisk = Get-WmiObject -Class win32_logicaldisk |  Where-Object {$_.DeviceID -eq "D:"} |select {$_.freespace/1gb} # we review the disk space again
+$deleteddays++ # we subtract one day from the days
+    } # End loop while, when we leave space disk
  
 
 $VMs = Get-VM -ComputerName $Hostname | Where-Object {$_.State -eq "Running"}
