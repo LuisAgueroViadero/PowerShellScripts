@@ -1,0 +1,340 @@
+<# 
+. Synopsis
+Menu para gestionar tareas en el AD
+.Description
+Se trata de un menu para efectuar varias tareas en los AD desde otro equipo, hay que tener en cuenta que en 
+esta versión se ha cargado en el perfil uno de los AD con los que se trabaja.
+    $sesion = New-PSSession -ComputerName svrsan-dc01 -Credential $Credentials
+    Invoke-Command -Session $sesion -ScriptBlock {Import-Module activedirectory}
+    Import-PSSession -Session $sesion -Module activedirectory -Prefix rem
+Se dan bajas, altas y cambios de contraseña para los dos tenant
+.PARAMETER user
+ Metemos el nombre del administrador con el que vamos a cargar el modulo
+ .Parameter Pass
+ Metemos la password del administrador para que nos deje cargar el modulo
+ .Parameter credentials
+ En esta variable guardamos el usuario y la password para que lo cargue todo junto
+ .Parameter date
+ En esta variable gardamos la fecha con el formato ddMMyyy
+.FUNCTION ventana
+Cargamos esta funcion para sacar una ventana emergente que solicita los datos, esta ventana solo sale para el AD local
+para el otro AD no se puede porque hacemos un invoke-command que hace que se ejecute en remoto.
+.Example
+.
+#>
+. C:\Directory\Function\menuinicio_new.ps1
+. C:\Directory\Function\VentanaDatos.ps1
+. C:\Directory\Function\ComprobarUsuario.ps1
+$opcion = menuinicio
+$inp = $opcion.Split(".")[0] 
+while($inp -ne "7"){
+ 
+switch($inp){
+        1 {
+            # Reseteo de contraseña
+            Clear-Host
+            Write-Host "------------------------------";
+            $cabecera = "Introduce la cuenta de usuario a restear la password"
+            $usuario = ventana
+            $cabecera = "Introduce la nueva password"
+            [string] $NewPass = ventana
+            $NewPass = $NewPass.Replace(" ","")
+            $cabecera = "Cambiar contraseña al conectarse si/no"
+            $Change = ventana
+            #Comprobamos si el usuario esta en Tenant1
+            Try{ 
+                $comprobar = Get-remADUser -Identity $usuario -Properties * -ErrorAction Stop 
+                $comprobar |Format-Table -AutoSize name,samaccountname,enabled
+                if ($comprobar.Enabled -eq "False"){Write-Host $comprobar.Enabled -ForegroundColor DarkRed -BackgroundColor White}
+                # Cambiamos la password del usuario
+                Set-remADAccountPassword -Identity $usuario -Reset -NewPassword (ConvertTo-SecureString -AsPlainText $NewPass -Force -Verbose) –PassThru
+                # Desbloqueamos la cuenta (por si estuviera bloqueada)
+                Unlock-remADAccount –Identity $usuario #Para desbloquear la cuenta
+                # Obligamos al usuario a cambiar la password
+                if ($change -eq "si"){Set-remADUser -Identity $usuario -ChangePasswordAtLogon $true}
+                    Else  {Set-remADUser -Identity $usuario -ChangePasswordAtLogon $false}
+                # Mostramos los datos del usuario
+                Write-Host "------------------------------"
+                Get-remADUser $usuario -Properties * | Format-Table -AutoSize name, pass* # Mostrar el último cambio de contraseña
+                Write-Host "Se ha cambiado la contraseña del usuario $usuario en Tenant1, la nueva contraseña es $NewPass "
+                Write-Host "------------------------------";
+                pause;
+                break
+                } # End Try usuario Tenant1
+                catch {
+                    $UserTenant2 = 'Tenant2\Administrator'
+                    $PassTenant2 = cat C:\Directory\txt\SecurePassword_Tenant2.txt | ConvertTo-SecureString
+                    $CredentialsTenant2 = New-object -TypeName System.Management.Automation.PSCredential -ArgumentList $UserTenant2,$PassTenant2
+                    Write-Host "Entramos en el  serverTenant2 que es el servidro de Tenant2"
+                    Invoke-Command -ComputerName serverTenant2 -Credential $CredentialsTenant2 -ScriptBlock {
+                    $usuario = $using:usuario
+                    Try{ 
+                    $comprobar = Get-ADUser -Identity $usuario -ErrorAction Stop 
+                    $comprobar | Format-Table -AutoSize name,samaccountname,enabled
+                    if ($comprobar.Enabled -eq "False"){Write-Host $comprobar.Enabled -ForegroundColor DarkRed -BackgroundColor White}
+                             [string] $NewPass = $using:NewPass
+                    $NewPass = $NewPass.Replace(" ","")
+                    Set-ADAccountPassword -Identity $usuario -Reset -NewPassword (ConvertTo-SecureString -AsPlainText $NewPass -Force -Verbose) –PassThru
+                    Unlock-ADAccount –Identity $usuario #Para desbloquear la cuenta
+                    Set-ADUser -Identity $usuario -ChangePasswordAtLogon $false #Que no cambie la contraseña en el próximo inicio de sesión
+                    Get-ADUser $usuario -Properties * | Format-Table -AutoSize name, pass* # Mostrar el último cambio de contraseña                                                                                       
+                    Write-Host "Se ha cambiado la contraseña del usuario $usuario en Tenant2, la nueva contraseña es $NewPass"
+                    Write-Host "------------------------------";
+                    pause;
+                    break
+                    } #End Try comprobar usuario Tenant2
+                    catch{Write-Host "La cuenta $usuario introducida es incorrecta" -ForegroundColor Red -BackgroundColor Gray} #End Catch Tenant2
+                } # End Scriptblock
+                } # End Catch Usuario Tenant2           
+                
+            
+            Clear-Host
+            break
+        } # End Opción 1 Cambiar contraseña de usuario Tenant1/Tenant2
+         2 {
+            # Habilitar usuario de baja
+            $cabecera = "Introduce datos del usuario a buscar"
+            $usuario = ventana          
+            $usuariosTenant1 = Get-remADUser -Filter "name -like '*$usuario*'" -ErrorAction continue  | select name, samaccountname, enabled            
+            $UserTenant2 = 'Tenant2\Administrator'
+            $PassTenant2 = cat C:\Directory\txt\SecurePassword_Tenant2.txt | ConvertTo-SecureString
+            $CredentialsTenant2 = New-object -TypeName System.Management.Automation.PSCredential -ArgumentList $UserTenant2,$PassTenant2
+            $usuariosTenant2 = Invoke-Command -ComputerName serverTenant2 -Credential $CredentialsTenant2 -ScriptBlock {
+                 Get-AdUser -Filter "name -like '*$using:usuario*'" -ErrorAction stop | select name, samaccountname, enabled} # End ScriptBlock consulta en servidor remoto             
+             Write-Host "Estos son los usuarios que contienen los caracteres en el Tenant de Tenant1"-ForegroundColor Red -BackgroundColor DarkGreen
+             Write-Host "------------------------------";
+             $usuariosTenant1
+             Write-Host "Estos son los que encontramos en el Tenant de Tenant2" -ForegroundColor Red -BackgroundColor DarkGreen
+             Write-Host "------------------------------";
+             $usuariosTenant2              
+            Write-Host "------------------------------";
+            $cabecera = "Poner el nombre del usuario (el nombre de la cuenta)"
+            $usuario = ventana 
+            Try{
+                $comprobar = Get-remADUser -Identity $usuario -Properties * -ErrorAction Stop 
+                $comprobar |Format-List name,samaccountname,enabled 
+                if ($comprobar.enabled -eq $false) {
+                Set-remADUser -identity $usuario -Enabled $true -Description " "
+                Get-remADUser -identity $usuario -Properties * | Format-List name,samaccountname, Description, Enabled 
+                } #end If comprobar que esta deshabilitado
+                Else { 
+                        $tenant = $activo.distinguishedname.split("DC=")[9,12]
+                        Write-Host "El usuario $usuario  del Directorio $tenant está: $comprobar.enabled"}#End Else usuario activo
+            } #End Try usuarios Tenant1
+            catch { 
+                $User = 'Tenant2\Administrator'
+                $Pass = cat C:\Directory\txt\SecurePassword_Tenant2.txt | ConvertTo-SecureString
+                $Credentials = New-object -TypeName System.Management.Automation.PSCredential -ArgumentList $User,$Pass
+                Invoke-Command -ComputerName serverTenant2 -Credential $Credentials -ScriptBlock {
+                $usuario =  $using:usuario
+                    Try{ 
+                    $comprobar = Get-ADUser -Identity $usuario -ErrorAction Stop 
+                    $comprobar | Format-List name,samaccountname,enabled 
+                    } #End Try
+                    catch {Write-Host "La cuenta del usuario $usuario introducida es incorrecta" -ForegroundColor Red -BackgroundColor Gray
+                    pause;
+                    break
+                    } # End Catch
+                    $activo = Get-ADUser -Identity $usuario -Properties * | select enabled 
+                    if ($activo.Enabled -eq $false){
+                        Set-ADUser -Identity $usuario -Enabled $true -Description " " 
+                        }else{ 
+                              $tenant = $activo.distinguishedname.split("DC=")[9,12]
+                              Write-Host -ForegroundColor White -BackgroundColor DarkGray "El usuario $usuario del Directorio $tenant ya estaba dado de alta :$activo"}
+                    Get-ADUser -Identity $usuario -Properties * |Format-List name, samaccountname,enabled,description
+                    } # End ScriptBlock
+
+            }  # End Catch usuarios Tenant2         
+        } # End Opción 2 habilitar usuario  
+        3 {
+            # Agregar datos a nuevos usuarios de Tenant1
+            Clear-Host
+            Write-Host "------------------------------";
+            $cabecera = "Poner el nombre del usuario (el nombre de la cuenta)"
+            $usuario = ventana
+            comprobar
+            $cabecera = "Departamento donde va a trabajar"
+            $departamento = ventana
+            $cabecera = "Grupo al que pertenece Tenant1/Strohm/OtroTenant"
+            $grupo = ventana
+            $cabecera = "Poner el nombre del usuario de referencia (nombre de cuenta)"
+            $UserReference= ventana
+            if ($grupo -eq "OtroTenant"){$country = "FR" 
+                                $vbs = ""}
+            Else{$country = "ES"
+                 $vbs = "logonTenant.vbs"}
+            Set-remADUser -identity $usuario -Office $grupo -state $grupo -scriptpath $vbs  -department $departamento -company $grupo -Country $country
+            Get-remADUser -Identity $UserReference -Properties memberof | select -ExpandProperty memberof | Add-remADGroupMember -Members $usuario
+            Write-Host -ForegroundColor red -BackgroundColor white "El nuevo usuario $username tiene los siguientes grupos"
+            Get-remADUser -Identity $usuario -Properties memberof | select -ExpandProperty memberof
+            Write-Host -ForegroundColor red -BackgroundColor white "El usuario de referencia $UserReference tiene los siguientes grupos"
+            Get-remADUser -Identity $UserReference -Properties memberof | select -ExpandProperty memberof
+            Write-Host "------------------------------";
+            pause;
+            Clear-Host
+            break
+            } # End Opción 3 Agregar Datos Nuevo usuario Tenant1
+        4 {
+            # Nuevo usuario en Tenant2
+            Clear-Host
+            Write-Host "------------------------------";
+            Write-Host -ForegroundColor Red -BackgroundColor DarkGreen "New User Tenant2"
+            $User = 'Tenant2\Administrator'
+            $Pass = cat C:\Directory\txt\SecurePassword_Tenant2.txt | ConvertTo-SecureString
+            $Credentials = New-object -TypeName System.Management.Automation.PSCredential -ArgumentList $User,$Pass
+            Write-Host "Entramos en el  serverTenant2 que es el servidro de Tenant2"
+            Invoke-Command -ComputerName serverTenant2 -Credential $Credentials -ScriptBlock {
+            [string] $name
+            $name = Read-Host "Introduce el Nombre " 
+            $surname = Read-Host "Introuce Apellido "
+            $account= $name.Split(" ")[0]
+            $account += "." + $surname.Split(" ")[0]
+            $aprobar = Read-Host "Quieres este nombre de cuenta $account si/no"
+            if ($aprobar -eq "si"){"Validamos $account como la cuenta de usuario"} # End If aprobar cuenta
+            Else {$account = Read-Host "Introduce como quieras que sea la cuenta de usuario"} # End Else metemos nueva cuenta
+            Try{ 
+                $comprobar = Get-ADUser -Identity $account -Properties * -ErrorAction Stop
+                Write-Host "La cuenta $account introducida ya existe" -ForegroundColor Red -BackgroundColor Gray 
+                $comprobar | Format-List name,samaccountname,enabled,office
+                $estado = $comprobar.enabled
+                $oficina = $comprobar.office
+                Write-Host "El estado de la cuenta es  $estado y la oficina a la que corresponde es $oficina"
+                $Si = Read-Host "Quieres habilitarlo Si/no"
+                if ($si -eq "si"){
+                            Set-ADUser -Identity $account -Enabled $true -Description " "
+                            if ($oficina -eq "TTM") {Add-ADGroupMember -Identity Gr_TRTTM_AVD_RD -Members $account} # End If TTM
+                            if ($oficina -eq "SIM"){Add-ADGroupMember -Identity Gr_TRSIM_AVD_RD -Members $account} # End If Sim
+                            } # End If habilitar usuario
+                } # End Try
+            catch {
+                $Country = Read-Host "Introduce el País  (se pone el codigo Iso 3166-I)" 
+                $Office = Read-Host "Introduce la OU del país "                 
+                [string]$password = Read-Host "Introduce la password "
+                $password = $password -replace " ","" 
+                $tenant = Read-Host "Introduce el directorio (ejempro: @Tenant.com) " 
+                $Departamento = Read-Host "Introduce el departamento "
+                if ($Office -eq "ou3"){$TargetOU = "OU=OU_ou3_users" + "," + "OU=OU_Users" + "," + (get-addomain).DistinguishedName}#End If saber si es ou3
+                Else{$TargetOU="OU=Users" + "," +"OU=OU_$Office" + "," + (Get-ADDomain).distinguishedname} #End else OU no ou3
+                $email ="$account$tenant"
+                $nameDisplay = "$name $surname"
+                $correcto = Read-Host "Los datos del usuario $name, $surname con la cuenta $account en la oficina $office son correctos si/no"
+                if ($correcto -eq "si"){
+                New-aduser  -Name $nameDisplay -SamAccountName $account -DisplayName $nameDisplay -GivenName $name  -Office $Office `
+                     -state $Office -company $Office -UserPrincipalName $email -Surname $surname -EmailAddress $email  `
+                     -AccountPassword (ConvertTo-SecureString $password -AsPlaintext -Force) -Enabled $True -Country $Country `
+                     -Path $TargetOU -Department $Departamento
+                if ($Office -eq "ou1"){Add-ADGroupMember -Identity GrupaAñadir -Members $account}
+                if ($Office -eq "ou2"){Add-ADGroupMember -Identity GrupoAñadir -Members $account}
+                if ($Office -eq "ou3"){
+                    $UserReference = Read-Host "intrudce el usuario de referencia"
+                    Get-ADUser -Identity $UserReference -Properties memberof | select -ExpandProperty memberof | Add-ADGroupMember -Members $account
+                    } # End If fin usuario referencia para ou3
+                    } # End If Es valido el alta que queremos dar
+                Else {break}
+                Write-Host "Se crea el usuario $nameDisplay con cuenta $account y password $password en el directorio $TargetOU"                   
+                            } # End catch el usuario no existe y creamos un nuevo usuario
+            pause;
+            break                
+                     
+                    } # End ScriptBlock
+            Write-Host "------------------------------";
+            pause;
+            Clear-Host
+            break
+            } # End Opción 4 Dar de Alta nuevo usuario Tenant2   
+        5 {
+        # Damos de Baja a un usuario de Tenant (Industrial o Group)
+            Write-Host "------------------------------";
+            Clear-Host
+            Write-Host -ForegroundColor Red -BackgroundColor DarkGreen "Baja usuario Tenant1/Tenant2"
+            $fecha = Get-Date -Format dd/MM/yyyy
+            $cabecera = "Introduce el nombre de la cuenta a dar de baja"
+            $Usuario = ventana
+            Try{ 
+                $comprobar = Get-remADUser -Identity $usuario -Properties * -ErrorAction Stop 
+                $comprobar |select name,samaccountname,enabled 
+                if ($comprobar.enabled -eq $false) {
+                    Write-Host " el Usuario $usuario ya esta dado de baja" -ForegroundColor Cyan -BackgroundColor Red
+                    Get-remADUser -Identity $usuario -Properties * | Format-List name,samaccountname,description,enabled
+                    Pause;
+                    break
+                    } #End If comprobar si está activo. 
+                Set-remADUser -Identity $Usuario -Enabled $false -Description "Disabled  $fecha" 
+                Get-remADUser -Identity $usuario -Properties * | Format-List  name,samaccountname,description,enabled     
+                } # End Try Tenant1
+                catch {
+                    $User = 'Tenant2\Administrator'
+                    $Pass = cat C:\Directory\txt\SecurePassword_Tenant2.txt | ConvertTo-SecureString
+                    $Credentials = New-object -TypeName System.Management.Automation.PSCredential -ArgumentList $User,$Pass
+                    Invoke-Command -ComputerName serverTenant2 -Credential $Credentials -ScriptBlock {
+                    $fecha = Get-Date -Format dd/MM/yyyy
+                    $usuario =  $using:usuario
+                    Try{ 
+                    $comprobar = Get-ADUser -Identity $usuario -Properties * -ErrorAction Stop 
+                    $comprobar |select name,samaccountname,enabled 
+                    } #End Try
+                    catch {Write-Host "La cuenta del usuario $usuario introducida es incorrecta" -ForegroundColor Red -BackgroundColor Gray
+                    pause;
+                    break
+                    } # End Catch
+                    $activo = Get-ADUser -Identity $usuario -Properties * | select enabled 
+                    if ($activo.Enabled -eq "True"){
+                        Set-ADUser -Identity $usuario -Enabled $false -Description "Disabled  $fecha" 
+                        }else{ Write-Host -ForegroundColor White -BackgroundColor DarkGray "El usuario $usuario ya estaba dado de baja en Tenant2 :$activo"}
+                    Get-ADUser -Identity $usuario -Properties * | Format-List name, samaccountname,description, enabled
+                    } # End ScriptBlock
+                } #End Catch Tenant2
+                pause;
+                break
+          } # End Opción 5 Dar de Baja a usuario de Tenant
+        6 {
+        # Borrar definitivamente un usuario
+            Write-Host "------------------------------";
+            Clear-Host
+            Write-Host -ForegroundColor Red -BackgroundColor DarkYellow "BORRAR usuario Tenant1/Tenant2"
+            $fecha = Get-Date -Format dd/MM/yyyy
+            $cabecera = "Introduce el nombre de la cuenta a BORRAR"
+            $Usuario = ventana
+            Try{ 
+                $comprobar = Get-remADUser -Identity $usuario -Properties * -ErrorAction Stop 
+                $comprobar |Format-List name,samaccountname,enabled 
+                if ($comprobar.enabled -eq $false) {
+                    Write-Host " el Usuario $usuario ya esta dado de baja, procedomos a BORRARLO"} #End If usuario deshabilitado
+                    $comprobar | Format-List name, samaccountname,enabled,description
+                    Remove-remADUser -Identity $usuario 
+                    Write-Host " el Usuario $usuario ya esta BORRADO"
+                    Pause;
+                    break
+                 } # End Try Tenant1
+                catch {
+                    $User = 'Tenant2\Administrator'
+                    $Pass = cat C:\Directory\txt\SecurePassword_Tenant2.txt | ConvertTo-SecureString
+                    $Credentials = New-object -TypeName System.Management.Automation.PSCredential -ArgumentList $User,$Pass
+                    Invoke-Command -ComputerName serverTenant2 -Credential $Credentials -ScriptBlock {
+                    $fecha = Get-Date -Format dd/MM/yyyy
+                    $usuario =  $using:usuario
+                    Try{ 
+                    $comprobar = Get-ADUser -Identity $usuario -ErrorAction Stop 
+                    $comprobar |fl name,samaccountname,enabled 
+                    } #End Try
+                    catch {Write-Host "La cuenta del usuario $usuario introducida es incorrecta" -ForegroundColor Red -BackgroundColor Gray
+                    pause;
+                    break
+                    } # End Catch
+                    $activo = Get-ADUser -Identity $usuario -Properties * | select enabled 
+                    if ($activo.Enabled -eq "False"){
+                    Write-Host -ForegroundColor White -BackgroundColor DarkGray "El usuario $usuario ya estaba dado de baja en Tenant2 procedemos a BORRARLO :$activo"}
+                    Remove-ADUser -Identity $usuario 
+                    Write-Host " el Usuario $usuario ya esta BORRADO"
+                    } # End ScriptBlock
+                } #End Catch Tenant2
+                pause;
+                break
+            } # End Opción 6 Borrar definitivamente usuario
+        7 {"Exit"; break}
+        default {Write-Host -ForegroundColor red -BackgroundColor white "Invalid option. Please select another option";pause}
+        
+    } # End Switch
+$opcion = menuinicio
+$inp = $opcion.Split(".")[0] 
+} #End While
