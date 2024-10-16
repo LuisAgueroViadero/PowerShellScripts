@@ -33,6 +33,7 @@ while($inp -ne "7"){
  
 switch($inp){
         1 {
+            # Cambiar password de usuario
             Clear-Host
             Write-Host "------------------------------";
             $cabecera = "Introduce la cuenta de usuario a cambiar la contraseña"
@@ -43,6 +44,9 @@ switch($inp){
             $cabecera = "Cambiar contraseña al conectarse si/no"
             $Change = ventana
             # Cambiamos la password del usuario
+            Try {
+            $comprobar = get-aduser -identity $usuario -properties * -ErrorAction Stop
+            $comprobar | select name,samaccountname,enabled
             Set-ADAccountPassword -Identity $usuario -Reset -NewPassword (ConvertTo-SecureString -AsPlainText $NewPass -Force -Verbose) –PassThru
             # Desbloqueamos la cuenta (por si estuviera bloquead)
             Unlock-ADAccount –Identity $usuario #Para desbloquear la cuenta
@@ -50,15 +54,19 @@ switch($inp){
             if ($change -eq "si"){Set-ADUser -Identity $usuario -ChangePasswordAtLogon $true}
                 Else  {Set-ADUser -Identity $usuario -ChangePasswordAtLogon $false}
             # Mostramos los datos del usuario
+            Write-Host "Se ha cambiado la contraseña del usuario"
             Get-ADUser $usuario -Properties * | select name, pass* # Mostrar el último cambio de contraseña
             Write-Host "------------------------------";
+            Catch {Write-Host "La cuenta $usuario introducida es incorrecta" -ForegroundColor Red -BackgroundColor Gray}
             pause;
+            Clear-Host
             break
-        }
+        } # Fin cambiar password de usuario
         2 {
+            # Cambiar password de usuario de otro tenant
             Clear-Host
             Write-Host "------------------------------";
-            Write-Host -ForegroundColor Red -BackgroundColor DarkGreen "Change Password TekaGroup";
+            Write-Host -ForegroundColor Red -BackgroundColor DarkGreen "Change Password Other Tenant";
             $User = 'othertenant\Administrator'
             $Pass = cat C:\directory\SecurePassword.txt | ConvertTo-SecureString
             $Credentials = New-object -TypeName System.Management.Automation.PSCredential -ArgumentList $User,$Pass
