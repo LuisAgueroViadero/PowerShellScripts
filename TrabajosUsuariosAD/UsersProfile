@@ -14,7 +14,7 @@ foreach ($profile in $profiles) {
 }
 
 # Exportar la información a un archivo CSV
-$profileInfo | Select-Object UserName, LastUseTime, ProfilePath | Export-Csv -Path "c:\scripts\perfiles_info.csv" -NoTypeInformation
+$profileInfo | Select-Object UserName, LastUseTime, ProfilePath | Export-Csv -Path "c:\scripts\perfiles_info.csv" -NoTypeInformation -Delimiter ";"
 
 # Mostrar la información en la consola
 $profileInfo | Select-Object UserName, LastUseTime, ProfilePath | Format-Table -AutoSize
