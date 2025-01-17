@@ -1,0 +1,14 @@
+cls
+# Ruta del archivo de texto con la lista de equipos
+$equiposFile = "C:\Scripts\Limpieza\equipos.txt"
+
+# Leer la lista de equipos
+$equipos = Get-Content -Path $equiposFile
+$date = (Get-Date).AddDays(-10)
+
+foreach ($equipo in $equipos){
+    $eq = get-adcomputer -Identity $equipo -Properties * 
+    $lastlogon = [datetime]::FromFileTime($eq.Lastlogon)
+    $lastlogondate = $eq.lastlogondate
+    write-host "$eq - $lastlogon - $lastlogondate"
+}
