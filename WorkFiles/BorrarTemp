@@ -1,0 +1,11 @@
+$ficherostemp = Get-ChildItem -Path C:\Users\Profile1\AppData\Local\Temp\30\
+$path = "C:\Users\Profile1\AppData\Local\Temp\30\"
+for ($i = 0; $i -lt $ficherostemp.Length; $i++){
+    $borrar =$ficherostemp[$i].Name
+    if ($ficherostemp[$i].Length -gt 100)
+        {
+        Remove-Item  -Path $path$borrar -Force
+        Write-Host "este se ha borrado $path$borrar"
+        } #End If
+        else {Write-Host "este no se borra $borrar"} #End else
+        } # End for
