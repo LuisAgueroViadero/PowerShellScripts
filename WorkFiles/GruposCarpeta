@@ -1,0 +1,18 @@
+$FolderPath = Get-ChildItem -Directory "c:\temp" -Recurse -Force
+
+foreach ($Folder in $FolderPath){
+    $ruta = $Folder.Parent 
+    $Acl = Get-Acl -Path $Folder.fullname #Comando para sacar los grupos de cada carpeta
+    foreach ($Access in $Acl.Access){
+        # Recorremos todos los grupos gracias al ForEach
+        $Miembros = Get-ADGroupMember $access.identityreference.tostring().split("\")[1] -recursive #Para sacar la pertenencia de usuarios de cada grupo
+        foreach ($Usuario in $Miembros){
+            $GroupMembers = New-Object -TypeName PSObject Property @{
+                Ruta =$ruta
+                GroupName = $Access.identityreference
+            UserName = $Usuario.Name
+            }
+            $GroupMembers | Select-Object Ruta, GroupName, UserName |Export-Csv "c:\temp\files.csv" -NoTypeInformation -Append #Exportamos el contenido
+        }
+    }
+}
