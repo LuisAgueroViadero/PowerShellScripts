@@ -9,12 +9,14 @@ foreach ($profile in $profiles) {
         UserName = $profile.LocalPath.Split('\')[-1]
         LastUseTime = [Management.ManagementDateTimeConverter]::ToDateTime($profile.LastUseTime)
         ProfilePath = $profile.LocalPath
+        RoamingPath = $profile.RoamingPath
+        RoamingConf = $profile.RoamingConfigured
     }
     $profileInfo += $user
 }
 
 # Exportar la información a un archivo CSV
-$profileInfo | Select-Object UserName, LastUseTime, ProfilePath | Export-Csv -Path "c:\scripts\perfiles_info.csv" -NoTypeInformation -Delimiter ";"
+$profileInfo | Select-Object UserName, LastUseTime, ProfilePath, RoamingPath, RoamingConf | Export-Csv -Path "c:\scripts\perfiles_info.csv" -NoTypeInformation -Delimiter ";"
 
 # Mostrar la información en la consola
 $profileInfo | Select-Object UserName, LastUseTime, ProfilePath | Format-Table -AutoSize
