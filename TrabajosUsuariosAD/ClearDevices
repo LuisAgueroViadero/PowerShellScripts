@@ -21,7 +21,7 @@ $logFile = "C:\Scripts\Limpieza\log.txt"
 $equiposFile = "C:\Scripts\Limpieza\equipos.txt"
 
 # OU de destino para los equipos deshabilitados
-$ouDeshabilitados = "OU=OU_Bajas_Computers,DC=teka,DC=industrial"
+$ouDeshabilitados = "OU=OU_Bajas_Computers,DC=dominio,DC=com"
 
 # Función para escribir en el log
 function Write-Log {
