@@ -1,0 +1,29 @@
+# Importar el módulo de Active Directory
+Import-Module ActiveDirectory
+
+# Obtener todas las OUs
+$ous = Get-ADOrganizationalUnit -Filter *
+
+# Crear un objeto para almacenar la información
+$ouUserInfo = @()
+
+foreach ($ou in $ous) {
+    # Obtener los usuarios en la OU actual
+    $users = Get-ADUser -Filter * -SearchBase $ou.DistinguishedName
+
+    foreach ($user in $users) {
+        $userInfo = New-Object PSObject -Property @{
+            OU          = $ou.Name
+            UserName    = $user.SamAccountName
+            DisplayName = $user.DisplayName
+            Email       = $user.EmailAddress
+        }
+        $ouUserInfo += $userInfo
+    }
+}
+
+# Exportar la información a un archivo CSV
+$ouUserInfo | Select-Object OU, UserName, DisplayName, Email | Export-Csv -Path "c:\scripts\ou_users_info.csv" -NoTypeInformation
+
+# Mostrar la información en la consola
+$ouUserInfo | Select-Object OU, UserName, DisplayName, Email | Format-Table -AutoSize
