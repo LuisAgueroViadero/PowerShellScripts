@@ -1,0 +1,16 @@
+Get-ADUser -filter * -properties PasswordLastSet, PasswordExpired, PasswordNeverExpires, SamAccountName | foreach {
+
+$today=get-date
+$UserName=$_.SamAccountName
+
+	if (!$_.PasswordNeverExpires) {
+	
+		$ChangeDate=($today-$_.PasswordLastSet).days
+
+		if ($ChangeDate -gt 1){
+			set-aduser $Username -ChangePasswordAtLogon $False
+			echo "$UserName debe cambiar"
+			
+		}
+	}
+}
