@@ -1,0 +1,64 @@
+<# 
+. Synopsis
+Script para mover los equipos a una OU
+.Description
+Se trata de mover los equipos que nos han dado en fichero TXT a una OU para deshabilitarlos
+.PARAMETER logfile
+ Fichero log donde guardamos resultados 
+ .Parameter equiposfile
+Fichero TXT donde nos dan los equipos que se quieren borrar
+ .Parameter oudeshabilitados
+ En esta variable guardamos la OU donde vamos a meter los equipos
+ .Parameter timestamp
+ En esta variable gardamos la fecha con el formato ddMMyyy
+.Example
+.
+#>
+# Ruta del archivo de log
+$logFile = "C:\Scripts\Limpieza\log.txt"
+
+# Ruta del archivo de texto con la lista de equipos
+$equiposFile = "C:\Scripts\Limpieza\equipos.txt"
+
+# OU de destino para los equipos deshabilitados
+$ouDeshabilitados = "OU=OU_Bajas_Computers,DC=teka,DC=industrial"
+
+# Función para escribir en el log
+function Write-Log {
+    param (
+        [string]$message
+    )
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    $logMessage = "$timestamp - $message"
+    Add-Content -Path $logFile -Value $logMessage
+    Write-Host $logMessage
+}
+
+# Leer la lista de equipos
+$equipos = Get-Content -Path $equiposFile
+
+foreach ($equipo in $equipos) {
+    try {
+        # Buscar el equipo en Active Directory
+        $adComputer = Get-ADComputer -Identity $equipo -Properties Description, DistinguishedName
+
+        if ($adComputer) {
+            # Deshabilitar el equipo
+            Disable-ADAccount -Identity $adComputer
+
+            # Añadir la OU de origen en el campo Descripción
+            $ouOrigen = $adComputer.DistinguishedName
+            Set-ADComputer -Identity $adComputer -Description "OU Origen: $ouOrigen"
+
+            # Mover el equipo a la OU "Deshabilitados"
+            Move-ADObject -Identity $adComputer -TargetPath $ouDeshabilitados
+
+            # Escribir en el log
+            Write-Log "Equipo $equipo deshabilitado y movido a $ouDeshabilitados. OU Origen: $ouOrigen"
+        } else {
+            Write-Log "Equipo $equipo no encontrado en Active Directory."
+        }
+    } catch {
+        Write-Log "Error procesando el equipo $equipo : $_"
+    }
+}
