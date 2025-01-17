@@ -19,4 +19,4 @@ foreach ($profile in $profiles) {
 $profileInfo | Select-Object UserName, LastUseTime, ProfilePath, RoamingPath, RoamingConf | Export-Csv -Path "c:\scripts\perfiles_info.csv" -NoTypeInformation -Delimiter ";"
 
 # Mostrar la información en la consola
-$profileInfo | Select-Object UserName, LastUseTime, ProfilePath | Format-Table -AutoSize
+$profileInfo | Select-Object UserName, LastUseTime, ProfilePath, RoamingPath, RoamingConf | Format-Table -AutoSize
