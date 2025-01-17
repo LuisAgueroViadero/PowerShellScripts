@@ -1,0 +1,7 @@
+$Language = 409
+$Config = (Get-ADRootDSE).configurationNamingContext
+$ouDisplaySpecifier = Get-ADObject -Identity "CN=organizationalUnit-Display,CN=$Language,CN=DisplaySpecifiers,$Config" -Properties *
+$defaultDisplaySpecifier = Get-ADObject -Identity "CN=default-Display,CN=$Language,CN=DisplaySpecifiers,$Config" -Properties *
+$extraColumns = $ouDisplaySpecifier.extraColumns
+$extraColumns += $defaultDisplaySpecifier.extraColumns
+Set-ADObject $ouDisplaySpecifier -Replace @{extraColumns=$extraColumns}
