@@ -1,0 +1,13 @@
+# Get-ADGroup -Filter * | Select-Object SamAccountName > C:\Temp\grupos.txt
+$fichero = "C:\temp\ou_new.csv"
+
+$OU = Get-Content $fichero
+
+foreach ($G In $OU){
+
+ 
+Get-ADUser -Filter "primarygroup -eq '$G'" -Properties * | Select-Object userprincipalname | Export-Csv C:\Temp\user$OU.csv 
+#Get-ADUser -Filter "primarygroup -eq 'CN=Domain Users,CN=Users,DC=tekagroup,DC=com'" -Properties * |Select-Object userprincipalname | Export-Csv C:\Temp\user$OU.csv 
+
+
+}getnet 
