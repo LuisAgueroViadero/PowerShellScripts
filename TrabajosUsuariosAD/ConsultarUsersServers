@@ -1,0 +1,18 @@
+# Define the server name
+$server = "NombreDelServidor"
+
+# Get the security event logs for logon events (ID 4624) and logon failures (ID 4625)
+$logonEvents = Get-WinEvent -ComputerName $server -FilterHashtable @{LogName='Security'; ID=4624,4625} -MaxEvents 1000
+
+# Process the events
+$logonEvents | ForEach-Object {
+    $event = $_
+    $user = $event.Properties[5].Value
+    $time = $event.TimeCreated
+    $status = if ($event.Id -eq 4624) { "Success" } else { "Failed" }
+    [PSCustomObject]@{
+        User = $user
+        Time = $time
+        Status = $status
+    }
+} | Sort-Object Time -Descending | Select-Object -First 20
