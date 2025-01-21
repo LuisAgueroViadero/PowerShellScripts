@@ -1,0 +1,2 @@
+qwinsta /server:NombreEquipo  # nos muestra los usuarios del Equipo
+gpresult /s NombreEquipo /user:NombreUsuario /h c:\temp\gpo_usuario_equipo.html #Saca las GPO's del usuario y del equipo
