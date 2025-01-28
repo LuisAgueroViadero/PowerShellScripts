@@ -1,0 +1,35 @@
+# Instalar el módulo ImportExcel si no lo tienes
+# Install-Module -Name ImportExcel -Scope CurrentUser
+
+# Leer el archivo HTML
+$htmlContent = Get-Content -Path "C:\ruta\al\informe.html" -Raw
+
+# Parsear el HTML
+$parsedHtml = [HtmlAgilityPack.HtmlDocument]::new()
+$parsedHtml.LoadHtml($htmlContent)
+
+# Extraer la tabla del HTML
+$table = $parsedHtml.DocumentNode.SelectSingleNode("//table")
+
+# Convertir las filas de la tabla en objetos PowerShell
+$rows = $table.SelectNodes(".//tr")
+$data = @()
+
+foreach ($row in $rows) {
+    $cells = $row.SelectNodes(".//td")
+    if ($cells) {
+        $data += [PSCustomObject]@{
+            Columna1 = $cells[0].InnerText
+            Columna2 = $cells[1].InnerText
+            # Añade más columnas según sea necesario
+        }
+    }
+}
+
+# Filtrar las columnas necesarias
+$filteredData = $data | Select-Object Columna1, Columna2 # Añade más columnas según sea necesario
+
+# Exportar a Excel
+$filteredData | Export-Excel -Path "C:\ruta\al\archivo.xlsx" -WorksheetName "Informe"
+
+Write-Output "Datos exportados a Excel exitosamente."
