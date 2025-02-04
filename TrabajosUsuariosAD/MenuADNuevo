@@ -250,6 +250,8 @@ switch($inp){
             $fecha = Get-Date -Format dd/MM/yyyy
             $cabecera = "Introduce el nombre de la cuenta a dar de baja"
             $Usuario = ventana
+            $atributo = "msDS-cloudExtensionAttribute1"
+            $nuevoValor = "HideFromGAL" # Añadimos este atributo para que no salga en las listas de usuarios de Exchange
             Try{ 
                 $comprobar = Get-remADUser -Identity $usuario -Properties * -ErrorAction Stop 
                 $comprobar |select name,samaccountname,enabled 
@@ -259,8 +261,13 @@ switch($inp){
                     Pause;
                     break
                     } #End If comprobar si está activo. 
-                Set-remADUser -Identity $Usuario -Enabled $false -Description "Disabled  $fecha" 
-                Get-remADUser -Identity $usuario -Properties * | Format-List  name,samaccountname,description,enabled     
+                Set-remADUser -Identity $Usuario -Enabled $false -Description "Disabled  $fecha" -State " "
+                $valorActual = (Get-remADUser -Identity $usuario -Properties $atributo).$atributo
+                if ($valorActual -ne $null){
+                Set-remADUser -Identity $usuario -Replace @{$atributo = $nuevoValor}
+                } # EndIf valor msDS no es Null
+                else{Set-remADUser -Identity $usuario -Add @{$atributo = $nuevoValor}} # End Else msDS es Null
+                Get-remADUser -Identity $usuario -Properties * | Format-List  name,samaccountname,description,enabled, $atributo     
                 } # End Try Tenant1
                 catch {
                     $User = 'Tenant2\Administrator'
@@ -269,6 +276,8 @@ switch($inp){
                     Invoke-Command -ComputerName serverTenant2 -Credential $Credentials -ScriptBlock {
                     $fecha = Get-Date -Format dd/MM/yyyy
                     $usuario =  $using:usuario
+                    $atributo = $using:atributo
+                    $nuevoValor = $using:nuevovalor
                     Try{ 
                     $comprobar = Get-ADUser -Identity $usuario -Properties * -ErrorAction Stop 
                     $comprobar |select name,samaccountname,enabled 
@@ -280,6 +289,7 @@ switch($inp){
                     $activo = Get-ADUser -Identity $usuario -Properties * | select enabled 
                     if ($activo.Enabled -eq "True"){
                         Set-ADUser -Identity $usuario -Enabled $false -Description "Disabled  $fecha" 
+                        Set-ADUser -Identity $usuario -Add @{$atributo = $nuevoValor}
                         }else{ Write-Host -ForegroundColor White -BackgroundColor DarkGray "El usuario $usuario ya estaba dado de baja en Tenant2 :$activo"}
                     Get-ADUser -Identity $usuario -Properties * | Format-List name, samaccountname,description, enabled
                     } # End ScriptBlock
