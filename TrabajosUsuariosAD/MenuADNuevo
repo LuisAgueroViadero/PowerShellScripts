@@ -93,6 +93,8 @@ switch($inp){
         } # End Opción 1 Cambiar contraseña de usuario Tenant1/Tenant2
          2 {
             # Habilitar usuario de baja
+            $atributo = "msDS-cloudExtensionAttribute1"
+            $nuevoValor = "HideFromGAL"
             $cabecera = "Introduce datos del usuario a buscar"
             $usuario = ventana          
             $usuariosTenant1 = Get-remADUser -Filter "name -like '*$usuario*'" -ErrorAction continue  | select name, samaccountname, enabled            
@@ -115,7 +117,11 @@ switch($inp){
                 $comprobar |Format-List name,samaccountname,enabled 
                 if ($comprobar.enabled -eq $false) {
                 Set-remADUser -identity $usuario -Enabled $true -Description " "
-                Get-remADUser -identity $usuario -Properties * | Format-List name,samaccountname, Description, Enabled 
+                $valorActual = (Get-remADUser -Identity $usuario -Properties $atributo).$atributo
+                    if ($valorActual -ne $null){
+                        Set-remADUser -Identity $usuario -Replace @{$atributo = $null}
+                    } # EndIf valor msDS no es Nul    
+                Get-remADUser -identity $usuario -Properties * | Format-List name,samaccountname, Description, Enabled, $atributo
                 } #end If comprobar que esta deshabilitado
                 Else { 
                         $tenant = $activo.distinguishedname.split("DC=")[9,12]
@@ -127,6 +133,8 @@ switch($inp){
                 $Credentials = New-object -TypeName System.Management.Automation.PSCredential -ArgumentList $User,$Pass
                 Invoke-Command -ComputerName serverTenant2 -Credential $Credentials -ScriptBlock {
                 $usuario =  $using:usuario
+                $atributo = $using:atributo
+                $nuevoValor = $using:nuevovalor
                     Try{ 
                     $comprobar = Get-ADUser -Identity $usuario -ErrorAction Stop 
                     $comprobar | Format-List name,samaccountname,enabled 
@@ -137,11 +145,15 @@ switch($inp){
                     } # End Catch
                     $activo = Get-ADUser -Identity $usuario -Properties * | select enabled 
                     if ($activo.Enabled -eq $false){
-                        Set-ADUser -Identity $usuario -Enabled $true -Description " " 
+                        Set-ADUser -Identity $usuario -Enabled $true -Description " "
+                        $valorActual = (Get-remADUser -Identity $usuario -Properties $atributo).$atributo
+                            if ($valorActual -ne $null){
+                            Set-ADUser -Identity $usuario -Replace @{$atributo = $null}
+                            } # EndIf valor msDS no es Nul
                         }else{ 
                               $tenant = $activo.distinguishedname.split("DC=")[9,12]
                               Write-Host -ForegroundColor White -BackgroundColor DarkGray "El usuario $usuario del Directorio $tenant ya estaba dado de alta :$activo"}
-                    Get-ADUser -Identity $usuario -Properties * |Format-List name, samaccountname,enabled,description
+                    Get-ADUser -Identity $usuario -Properties * |Format-List name, samaccountname,enabled,description,$atributo
                     } # End ScriptBlock
 
             }  # End Catch usuarios Tenant2         
