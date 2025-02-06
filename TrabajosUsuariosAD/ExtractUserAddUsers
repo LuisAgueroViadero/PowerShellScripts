@@ -2,6 +2,9 @@ Get-MsolUser | Select-Object UserPrincipalName, DisplayName, Department | Export
 # Importar el módulo de AzureAD
 Import-Module AzureAD
 
+# Importar el módulo de AzureAD
+Import-Module AzureAD
+
 # Conectarse al nuevo tenant
 Connect-AzureAD
 
@@ -10,5 +13,11 @@ $usuarios = Import-Csv -Path "C:\ruta\usuarios.csv"
 
 # Agregar cada usuario al nuevo tenant
 foreach ($usuario in $usuarios) {
-    New-AzureADUser -UserPrincipalName $usuario.UserPrincipalName -DisplayName $usuario.DisplayName -Department $usuario.Department -PasswordProfile (New-Object -TypeName Microsoft.Open.AzureAD.Model.PasswordProfile -Property @{Password = "ContraseñaTemporal123"; ForceChangePasswordNextSignIn = $true})
+    New-AzureADUser -UserPrincipalName $usuario.UserPrincipalName -DisplayName $usuario.DisplayName -Department $usuario.Department 
+        -PasswordProfile (New-Object -TypeName Microsoft.Open.AzureAD.Model.PasswordProfile -Property @{Password = "ContraseñaTemporal123"; 
+        ForceChangePasswordNextSignIn = $true})
 }
+
+Get-AzureADUser
+
+
