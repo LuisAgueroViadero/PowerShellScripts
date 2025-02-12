@@ -1,0 +1,4 @@
+# Nos conectamos a Exchange
+Connect-ExchangeOnline
+# Buscamos y recuperamos los correos borrados
+Search-Mailbox -Identity <buzón_usuario> -SearchQuery 'is:deleted' -TargetMailbox <buzón_destino> -TargetFolder 'Recuperados' -LogLevel Full
