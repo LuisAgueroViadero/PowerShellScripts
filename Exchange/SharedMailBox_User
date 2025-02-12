@@ -1,0 +1,14 @@
+#Con este script podemos ver los buzones compartidos a los que tiene acceso un usuario en Azure
+
+# Lo primero que hacemos es conectarnos al Exchange
+Connect-ExchangeOnline
+# Cargamos en la variable SharedMailboxes todos Shared Mailbox
+$sharedMailboxes = Get-Mailbox -RecipientTypeDetails SharedMailbox -ResultSize Unlimited
+# Recorremos cada uno de los correos
+foreach ($mailbox in $sharedMailboxes) {
+    # Metemos en la variable permissions el nombre del correo al que pertenece el usuario 
+    $permissions = Get-MailboxPermission -Identity $mailbox.identity | Where-Object { $_.User -like "usuaria@contoso.com" }
+    if ($permissions) {
+        $mailbox.Identity
+    }
+}
