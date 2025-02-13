@@ -11,7 +11,9 @@ La función se llama Show-Dropdown y tenemos que cargarla desde el script que qu
 .Example
 $opciones = @("Opción1", "Opción2", "Opción3, "Opción4")
 $seleccion = Show-Dropdown -Options $opciones -Title "Menú de opciones" -Prompt "Seleccione una opción:"
-.
+.ACTION
+Es necesario asegurarse que pueda usar componentes de Windows Forms para ello ejecutamos en el Script principal
+Add-Type -AssemblyName System.Windows.Forms
 #>
 
 function Show-Dropdown {
