@@ -1,0 +1,62 @@
+<# 
+. Synopsis
+Lista deplegable para que nos muestro los datos que queremos añadir a una variable
+.Description
+Nos muestra una ventana emeregente con las opciones que pasemos cuando llamamos a la funcion ejemplo "$opciones = @("Opción1", "Opción2", "Opción3, "Opción4")"
+podemos poner todas las opciones que queramos, una vez elijamos la opción esta se guardara en la variable indicada ejemplo 
+"$seleccion = Show-Dropdown -Options $opciones -Title "Menú de opciones" -Prompt "Seleccione una opción:" en este ejemplo se guarda en la variable $seleccion
+.PARAMETER 
+.FUNCTION 
+La función se llama Show-Dropdown y tenemos que cargarla desde el script que queramos que use la lista desplegable.
+.Example
+$opciones = @("Opción1", "Opción2", "Opción3, "Opción4")
+$seleccion = Show-Dropdown -Options $opciones -Title "Menú de opciones" -Prompt "Seleccione una opción:"
+.
+#>
+
+function Show-Dropdown {
+    param (
+        [string[]]$Options,
+        [string]$Title = "Seleccione una opción",
+        [string]$Prompt = "Elija una opción de la lista:"
+    )
+
+    # Crear el formulario
+    $form = New-Object System.Windows.Forms.Form
+    $form.Text = $Title
+    $form.Size = New-Object System.Drawing.Size(300, 150)
+    $form.StartPosition = "CenterScreen"
+
+    # Crear la etiqueta
+    $label = New-Object System.Windows.Forms.Label
+    $label.Text = $Prompt
+    $label.AutoSize = $true
+    $label.Location = New-Object System.Drawing.Point(10, 20)
+    $form.Controls.Add($label)
+
+    # Crear el ComboBox
+    $comboBox = New-Object System.Windows.Forms.ComboBox
+    $comboBox.Location = New-Object System.Drawing.Point(10, 50)
+    $comboBox.Size = New-Object System.Drawing.Size(260, 20)
+    $comboBox.Items.AddRange($Options)
+    $form.Controls.Add($comboBox)
+
+    # Crear el botón de OK
+    $okButton = New-Object System.Windows.Forms.Button
+    $okButton.Text = "OK"
+    $okButton.Location = New-Object System.Drawing.Point(200, 80)
+    $okButton.Add_Click({
+        $form.Tag = $comboBox.SelectedItem
+        $form.Close()
+    })
+    $form.Controls.Add($okButton)
+
+    # Mostrar el formulario
+    $form.ShowDialog() | Out-Null
+    return $form.Tag
+}
+
+# Ejemplo de uso
+<#$opciones = @("Opción1", "Opción2", "Opción3, "Opción4")
+$seleccion = Show-Dropdown -Options $opciones -Title "Menú de opciones" -Prompt "Seleccione una opción:"
+Write-Output "Ha seleccionado: $seleccion"#>
