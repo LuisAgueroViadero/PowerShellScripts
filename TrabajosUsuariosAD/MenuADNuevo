@@ -25,6 +25,7 @@ para el otro AD no se puede porque hacemos un invoke-command que hace que se eje
 . C:\Directory\Function\menuinicio_new.ps1
 . C:\Directory\Function\VentanaDatos.ps1
 . C:\Directory\Function\ComprobarUsuario.ps1
+. C:\Directory\Funcion\ListaDesplegable.ps1
 $opcion = menuinicio
 $inp = $opcion.Split(".")[0] 
 while($inp -ne "7"){
@@ -167,8 +168,10 @@ switch($inp){
             comprobar
             $cabecera = "Departamento donde va a trabajar"
             $departamento = ventana
-            $cabecera = "Grupo al que pertenece Tenant1/Strohm/OtroTenant"
-            $grupo = ventana
+
+            $opciones= @("OpcionOU1", "OpcionOU2", "OpcionOU3")
+            $grupo = Show-Dropdown -Opcitons $opciones -Title "Menú de opciones" -Prompt "Seleccione una opción:"
+
             $cabecera = "Poner el nombre del usuario de referencia (nombre de cuenta)"
             $UserReference= ventana
             if ($grupo -eq "OtroTenant"){$country = "FR" 
