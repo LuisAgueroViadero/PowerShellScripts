@@ -160,30 +160,56 @@ switch($inp){
             }  # End Catch usuarios Tenant2         
         } # End Opción 2 habilitar usuario  
         3 {
-            # Agregar datos a nuevos usuarios de Tenant1
+            # Agregar usuarios de Tenant1
             Clear-Host
             Write-Host "------------------------------";
+            $cabecera = "Introduce el nombre"
+            $name = ventana
+            $cabecera = "Introduce Apellido"
+            $surname = ventana
+            $cabecera = "Introduce la OU principal"
+            $OUprincipal = ventana
+            $cabecera = "Introduce la Ou Secundaria"
+            $OUSecundaria = ventana
+            $cabecera = "Introduce la Ou Terciaria"
+            $OUTerciaria = ventana
+            if ($OUTerciaria -eq ""){
+            $path = "ou=$OUSecundaria" + "," + "ou=$OUprincipal" + "," + (get-remaddomain).DistinguishedName
+            }
+            Else{
+            $path = "ou = $OUTerciaria" + "," + "ou=$OUSecundaria" + "," + "ou=$OUprincipal" + "," + (get-remaddomain).DistinguishedName
+            }
             $cabecera = "Poner el nombre del usuario (el nombre de la cuenta)"
             $usuario = ventana
-            comprobar
+            
             $cabecera = "Departamento donde va a trabajar"
             $departamento = ventana
+            $email = $usuario+"@tenant.com"
+            $cabecera = "Introduce Password"
+            $PassUsuario = ventana
+            $namedisplay = "$name $surname"
 
-            $opciones= @("OpcionOU1", "OpcionOU2", "OpcionOU3")
-            $grupo = Show-Dropdown -Opcitons $opciones -Title "Menú de opciones" -Prompt "Seleccione una opción:"
+            $opciones = @("Sede 1", "Sede 2", "Sede 3", "Sede 4", "Sede 5","Sede 6")
+            $grupo = Show-Dropdown -Options $opciones -Title "Menú de opciones" -Prompt "Seleccione una opción:"
 
             $cabecera = "Poner el nombre del usuario de referencia (nombre de cuenta)"
             $UserReference= ventana
-            if ($grupo -eq "OtroTenant"){$country = "FR" 
-                                $vbs = ""}
+            if ($grupo.Split("-")[0] -eq "sede 5"){
+                                $country = "FR" 
+                                $vbs = ""
+                                } # End If pertenece a France
             Else{$country = "ES"
-                 $vbs = "logonTenant.vbs"}
-            Set-remADUser -identity $usuario -Office $grupo -state $grupo -scriptpath $vbs  -department $departamento -company $grupo -Country $country
-            Get-remADUser -Identity $UserReference -Properties memberof | select -ExpandProperty memberof | Add-remADGroupMember -Members $usuario
+                 $vbs = "cargaperfilcompañia.vbs"} # End Else no pertenece a France
+            New-ADUser -Name $namedisplay -SamAccountName $usuario -DisplayName $namedisplay -GivenName $name -Office $grupo `
+             -state $grupo -scriptpath $vbs  -department $departamento -company $grupo.split("-")[0] -Country $country `
+             -UserPrincipalName $email -Surname $surname -EmailAddress $email -AccountPassword (ConvertTo-SecureString $PassTKI -AsPlainText -Force)`
+             -Enabled $true -Path $path 
+                       
+            Get-ADUser -Identity $UserReference -Properties memberof | select -ExpandProperty memberof | Add-remADGroupMember -Members $usuario
             Write-Host -ForegroundColor red -BackgroundColor white "El nuevo usuario $username tiene los siguientes grupos"
-            Get-remADUser -Identity $usuario -Properties memberof | select -ExpandProperty memberof
+            Get-ADUser -Identity $usuario -Properties memberof | select -ExpandProperty memberof
             Write-Host -ForegroundColor red -BackgroundColor white "El usuario de referencia $UserReference tiene los siguientes grupos"
-            Get-remADUser -Identity $UserReference -Properties memberof | select -ExpandProperty memberof
+            Get-ADUser -Identity $UserReference -Properties memberof | select -ExpandProperty memberof
             Write-Host "------------------------------";
             pause;
             Clear-Host
